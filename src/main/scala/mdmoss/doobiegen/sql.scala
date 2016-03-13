@@ -20,4 +20,6 @@ object sql {
   case class CreateTable(table: TableRef, properties: Seq[TableProperty]) extends Statement
 
   case class CreateSchema(name: String) extends Statement
+
+  case class Table(ref: TableRef, properties: Seq[TableProperty])
 }
