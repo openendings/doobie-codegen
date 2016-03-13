@@ -12,7 +12,7 @@ object sql {
   case object Timestamp       extends Type
 
   sealed trait TableProperty
-  case class Column(sqlName: String, sqlType: Type) extends TableProperty
+  case class Column(sqlName: String, sqlType: Type, properties: Seq[ColumnProperty]) extends TableProperty
 
   case class TableRef(schema: Option[String], sqlName: String)
 
@@ -22,4 +22,8 @@ object sql {
   case class CreateSchema(name: String) extends Statement
 
   case class Table(ref: TableRef, properties: Seq[TableProperty])
+
+  sealed trait ColumnProperty
+  case object Null extends ColumnProperty
+  case object NotNull extends ColumnProperty
 }

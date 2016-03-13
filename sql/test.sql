@@ -16,3 +16,8 @@ CREATE SCHEMA schema;
 CREATE TABLE schema.test (
     id BIGINT
 );
+
+CREATE TABLE test_nullible (
+    always_string    TEXT NOT NULL,
+    sometimes_string TEXT
+);

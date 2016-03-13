@@ -40,10 +40,16 @@ object Runner {
 
     val statements = parsers.flatMap(_.StatementLine.run().toOption)
 
-    val model = statements.foldLeft(DbModel.empty)(DbModel.update)
-
     println(seperator)
-    println(model)
+
+    if (statements.length != parsers.length) {
+      println("Something failed parsing. Exiting...")
+    } else {
+      val model = statements.foldLeft(DbModel.empty)(DbModel.update)
+      println(model)
+    }
+
+
 
   }
 
