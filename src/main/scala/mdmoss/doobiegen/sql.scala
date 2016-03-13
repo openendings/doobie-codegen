@@ -14,8 +14,10 @@ object sql {
   sealed trait TableProperty
   case class Column(sqlName: String, sqlType: Type) extends TableProperty
 
-  case class TableRef(sqlName: String)
+  case class TableRef(schema: Option[String], sqlName: String)
 
   sealed trait Statement
   case class CreateTable(table: TableRef, properties: Seq[TableProperty]) extends Statement
+
+  case class CreateSchema(name: String) extends Statement
 }

@@ -10,3 +10,9 @@ CREATE TABLE test_types (
     ts   TIMESTAMP,
     tsz  TIMESTAMP WITH TIME ZONE
 );
+
+CREATE SCHEMA schema;
+
+CREATE TABLE schema.test (
+    id BIGINT
+);

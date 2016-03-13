@@ -6,9 +6,12 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
 
   def StatementLine = rule { Statement ~ EOI }
 
-  def Statement = rule { CreateTable }
+  def Statement = rule { CreateTable | CreateSchema }
 
-  def CreateTable = rule { "CREATE TABLE " ~ TableRef ~ '(' ~ OptionalWhitespace ~ zeroOrMore(Column) ~ ");"}
+  def CreateTable: Rule1[sql.Statement] = rule {
+    ("CREATE TABLE " ~ TableRef ~ '(' ~ OptionalWhitespace ~ zeroOrMore(Column) ~ ");") ~>
+       { (ref, columns) => sql.CreateTable(ref, columns) }
+  }
 
   def Column: Rule1[sql.Column] = rule {
     (ValidIdentifier ~ Type ~ optional(',') ~ OptionalWhitespace) ~> {(id, typ) => sql.Column(id, typ) }
@@ -26,7 +29,10 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
   )
 
   /* http://www.postgresql.org/docs/9.4/static/sql-syntax-lexical.html */
-  def TableRef: Rule1[String] = rule { ValidIdentifier }
+  def TableRef: Rule1[sql.TableRef] = rule {
+    optional(ValidIdentifier ~ '.') ~ ValidIdentifier ~> { (schema, name) => sql.TableRef(schema, name) }
+  }
+
 
   def ValidIdentifier: Rule1[String] = rule {
     capture (
@@ -36,5 +42,9 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
 
   def Whitespace = rule { oneOrMore(anyOf(" \n\t")) }
   def OptionalWhitespace = rule { zeroOrMore(anyOf(" \n\t")) }
+
+  def CreateSchema: Rule1[sql.Statement] = rule {
+    ("CREATE SCHEMA " ~ ValidIdentifier ~ ';') ~> { (name) => sql.CreateSchema(name) }
+  }
 }
 
