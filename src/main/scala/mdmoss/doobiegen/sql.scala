@@ -24,7 +24,7 @@ object sql {
   case class Table(ref: TableRef, properties: Seq[TableProperty])
 
   sealed trait ColumnProperty
-  case object Null    extends ColumnProperty
-  case object NotNull extends ColumnProperty
+  case object Null       extends ColumnProperty
+  case object NotNull    extends ColumnProperty
   case object PrimaryKey extends ColumnProperty
 }

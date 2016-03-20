@@ -6,6 +6,8 @@ case class DbModel(tables: Seq[sql.Table])
 
 object DbModel {
 
+  def empty = DbModel(Seq())
+
   def update(model: DbModel, sql: Statement): DbModel = sql match {
 
     case CreateTable(table, props) => model.copy(tables = model.tables :+ Table(table, props))
@@ -14,5 +16,4 @@ object DbModel {
     case CreateSchema(_) => model
   }
 
-  def empty = DbModel(Seq())
 }

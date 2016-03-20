@@ -42,16 +42,15 @@ object Runner {
 
     println(seperator)
 
-    if (statements.length != parsers.length) {
-      println("Something failed parsing. Exiting...")
-    } else {
-      val model = statements.foldLeft(DbModel.empty)(DbModel.update)
-      model.tables.foreach {
-        println
-      }
-    }
+    if (statements.length != parsers.length) throw new Throwable("Failed parsing. Exiting.")
 
+    val model = statements.foldLeft(DbModel.empty)(DbModel.update)
+    model.tables.foreach(println)
 
+    println(seperator)
+
+    val plan = CodePlan.gen(model)
+    plan.part.foreach(println)
 
   }
 
