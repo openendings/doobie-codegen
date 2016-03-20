@@ -50,7 +50,15 @@ object Runner {
     println(seperator)
 
     val plan = CodePlan.gen(model)
-    plan.part.foreach(println)
+    plan.objects.foreach(println)
+
+    println(seperator)
+
+    val code = Code.gen(plan)
+    code.foreach { c =>
+      println(c.`package`, c.name)
+      c.parts.foreach(println)
+    }
 
   }
 
