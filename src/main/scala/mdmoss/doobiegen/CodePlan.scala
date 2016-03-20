@@ -15,10 +15,10 @@ case class ScalaType(symbol: String)
 
 object CodePlan {
 
-  def gen(model: DbModel): CodePlan = {
+  def gen(packageRoot: String, model: DbModel): CodePlan = {
     /* Basic things first. Generate an object for each table. */
     val basics = model.tables.map { t =>
-      ObjectPlan("", t.ref.sqlName, Seq(genInsert(t)))
+      ObjectPlan(packageRoot, t.ref.sqlName, Seq(genInsert(t)))
     }
 
     CodePlan(basics)

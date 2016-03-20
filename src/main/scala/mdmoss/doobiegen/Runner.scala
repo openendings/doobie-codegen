@@ -1,5 +1,7 @@
 package mdmoss.doobiegen
 
+import java.io.{File, PrintWriter}
+
 import org.parboiled2.ParseError
 
 import scala.collection.mutable.ListBuffer
@@ -49,15 +51,24 @@ object Runner {
 
     println(seperator)
 
-    val plan = CodePlan.gen(model)
+    val plan = CodePlan.gen("mdmoss.doobiegen.db", model)
     plan.objects.foreach(println)
 
     println(seperator)
 
     val code = Code.gen(plan)
     code.foreach { c =>
-      println(c.`package`, c.name)
-      c.parts.foreach(println)
+      println(c.name)
+      println(c.contents)
+    }
+
+    val target = "out/src/main/scala/mdmoss/doobiegen/db"
+
+    val dir = new File(target)
+    dir.listFiles().forall(_.delete())
+
+    code.foreach { f =>
+      new PrintWriter(s"$target/${f.name}") {write(f.contents); close()}
     }
 
   }
