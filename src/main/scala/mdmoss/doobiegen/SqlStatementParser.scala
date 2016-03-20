@@ -20,19 +20,20 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
 
   /* Note: all of these must be lowercase, and this isn't enforced by parboiled :/ */
   def Type: Rule1[sql.Type] = rule {(
-      ignoreCase("bigint") ~ push(sql.BigInt)
-        | ignoreCase("boolean") ~ push(sql.Boolean)
-        | ignoreCase("double precision") ~ push(sql.DoublePrecision)
-        | ignoreCase("integer") ~ push(sql.Integer)
-        | ignoreCase("text") ~ push(sql.Text)
+      ignoreCase("bigint") ~                       push(sql.BigInt)
+        | ignoreCase("boolean") ~                  push(sql.Boolean)
+        | ignoreCase("double precision") ~         push(sql.DoublePrecision)
+        | ignoreCase("integer") ~                  push(sql.Integer)
+        | ignoreCase("text") ~                     push(sql.Text)
         | ignoreCase("timestamp with time zone") ~ push(sql.Timestamp)
-        | ignoreCase("timestamp") ~ push(sql.Timestamp)
+        | ignoreCase("timestamp") ~                push(sql.Timestamp)
       ) ~ OptionalWhitespace
   }
 
   def ColumnProperty: Rule1[sql.ColumnProperty] = rule (
       ignoreCase("null")     ~ push(sql.Null)
     | ignoreCase("not null") ~ push(sql.NotNull)
+    | ignoreCase("primary key") ~ push(sql.PrimaryKey)
   )
 
   /* http://www.postgresql.org/docs/9.4/static/sql-syntax-lexical.html */

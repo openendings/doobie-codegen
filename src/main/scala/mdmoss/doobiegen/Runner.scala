@@ -46,7 +46,9 @@ object Runner {
       println("Something failed parsing. Exiting...")
     } else {
       val model = statements.foldLeft(DbModel.empty)(DbModel.update)
-      println(model)
+      model.tables.foreach {
+        println
+      }
     }
 
 
