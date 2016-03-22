@@ -1,8 +1,13 @@
 package mdmoss.doobiegen
 
+import mdmoss.doobiegen.Runner.Target
+
 object Code {
-  def gen(plan: CodePlan): Seq[OutFile] = {
-    plan.objects.map { o =>
+
+  case class CodegenResult(src: Seq[OutFile], tests: Seq[OutFile])
+
+  def gen(plan: CodePlan, target: Target): CodegenResult = {
+    val src = plan.objects.map { o =>
       val name = s"${o.name}.scala"
 
       val parts = o.code.flatMap {
@@ -19,14 +24,51 @@ object Code {
            |
            |object ${o.name} {
            |
-           |${parts.map(_.pp).mkString("\n")}
+           |${parts.map(_.pp).mkString("\n").indent(2)}
            |
            |}
          """.stripMargin
 
 
+      (o, parts, OutFile(name, contents))
+    }
+
+    val tests = src.map { case (obj, parts, code) =>
+      val name = s"${obj.name}Spec.scala"
+
+      val testParts = parts.flatMap {
+        case f @ FunctionDef(_, _, "Update0", _) => Some(checkTest(f))
+        case _ => None
+      }
+
+      val contents =
+        s"""package ${obj.`package`}
+           |
+           |/* Todo handle imports */
+           |import doobie.imports._
+           |import java.sql.Timestamp
+           |import org.specs2.mutable.Specification
+           |import scalaz.concurrent.Task
+           |import doobie.contrib.specs2.analysisspec.AnalysisSpec
+           |
+           |object ${obj.name}Spec extends Specification with AnalysisSpec {
+           |
+           |  val transactor = DriverManagerTransactor[Task](
+           |    "${target.testDb.driver}",
+           |    "${target.testDb.url}",
+           |    "${target.testDb.username}",
+           |    "${target.testDb.password}"
+           |  )
+           |
+           |${testParts.map(_.pp).mkString("\n").indent(2)}
+           |
+           |}
+         """.stripMargin
+
       OutFile(name, contents)
     }
+
+    CodegenResult(src.map(_._3), tests)
   }
 
   def genInsert(insert: Insert): CodePart = {
@@ -42,8 +84,10 @@ object Code {
         |\"\"\".update
       """.stripMargin.trim
 
-    FunctionDef(insert.table.sqlName, params, "Update0", body)
+    FunctionDef("insert", params, "Update0", body)
   }
+
+  def checkTest(f: FunctionDef): Block = Block(s"check(${f.name})")
 
   implicit class indentString(s: String) {
     def indent(nSpaces: Int) = s.split("\n").map(p => " " * nSpaces + p).mkString("\n")
@@ -68,3 +112,7 @@ case class FunctionDef(name: String, params: Seq[FunctionParam], returnType: Str
      """.stripMargin
 }
 case class FunctionParam(name: String, `type`: ScalaType)
+
+case class Block(body: String) extends CodePart {
+  override def pp: String = body
+}

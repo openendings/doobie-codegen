@@ -9,6 +9,17 @@ import scala.util.{Failure, Success}
 
 object Runner {
 
+  val config = Target(
+    TestDatabase(
+      "org.postgresql.Driver",
+      "jdbc:postgresql:gen",
+      "test",
+      "test"
+    ),
+    "out/src/main/scala/mdmoss/doobiegen/db",
+    "out/src/test/scala/mdmoss/doobiegen/db"
+  )
+
   def main(args: Array[String]) {
 
      /* We could do something more intelligent here, but this works for now */
@@ -56,22 +67,25 @@ object Runner {
 
     println(seperator)
 
-    val code = Code.gen(plan)
-    code.foreach { c =>
-      println(c.name)
-      println(c.contents)
+    val code = Code.gen(plan, config)
+
+    /* Delete everything currently in the target directories */
+    val dirs = List(new File(config.srcDir), new File(config.testDir))
+    dirs.foreach(_.mkdirs())
+    dirs.foreach(_.listFiles().forall(_.delete()))
+
+    code.src.foreach { f =>
+      new PrintWriter(s"${config.srcDir}/${f.name}") {write(f.contents); close()}
+    }
+    code.tests.foreach { f =>
+      new PrintWriter(s"${config.testDir}/${f.name}") {write(f.contents); close()}
     }
 
-    val target = "out/src/main/scala/mdmoss/doobiegen/db"
-
-    val dir = new File(target)
-    dir.listFiles().forall(_.delete())
-
-    code.foreach { f =>
-      new PrintWriter(s"$target/${f.name}") {write(f.contents); close()}
-    }
 
   }
 
   val seperator = "*" * 80
+
+  case class TestDatabase(driver: String, url: String, username: String, password: String)
+  case class Target(testDb: TestDatabase, srcDir: String, testDir: String)
 }

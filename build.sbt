@@ -3,7 +3,7 @@ val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "org.tpolecat"  %% "doobie-core"           % "0.2.3",
     "org.tpolecat"  %% "doobie-contrib-specs2" % "0.2.3" % "test",
-    "org.specs2"    %% "specs2-core"           % "3.6.3"  % "test",
+    "org.specs2"    %% "specs2-core"           % "3.6.3" % "test",
     "org.parboiled" %% "parboiled"             % "2.1.2"
   ),
   resolvers ++= Seq(

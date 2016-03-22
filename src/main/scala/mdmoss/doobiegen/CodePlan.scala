@@ -18,7 +18,7 @@ object CodePlan {
   def gen(packageRoot: String, model: DbModel): CodePlan = {
     /* Basic things first. Generate an object for each table. */
     val basics = model.tables.map { t =>
-      ObjectPlan(packageRoot, t.ref.sqlName, Seq(genInsert(t)))
+      ObjectPlan(packageRoot, objectName(t.ref), Seq(genInsert(t)))
     }
 
     CodePlan(basics)
@@ -44,6 +44,10 @@ object CodePlan {
     }
 
     base
+  }
+
+  def objectName(tableRef: TableRef) = {
+    """_([a-z])""".r.replaceAllIn(tableRef.sqlName, m => m.group(1).capitalize).capitalize
   }
 
 }
