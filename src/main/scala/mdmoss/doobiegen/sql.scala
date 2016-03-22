@@ -14,7 +14,10 @@ object sql {
   sealed trait TableProperty
   case class Column(sqlName: String, sqlType: Type, properties: Seq[ColumnProperty]) extends TableProperty
 
-  case class TableRef(schema: Option[String], sqlName: String)
+  case class TableRef(schema: Option[String], sqlName: String) {
+    /* I don't like this name. @todo change this. */
+    def fullName = schema.map(s => s"$s.").getOrElse("") + sqlName
+  }
 
   sealed trait Statement
   case class CreateTable(table: TableRef, properties: Seq[TableProperty]) extends Statement

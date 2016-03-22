@@ -77,9 +77,11 @@ object Code {
       FunctionParam(f.column.sqlName, f.scalaType)
     }
 
+    val tableRef = insert.table
+
     val body =
       s"""sql\"\"\"
-        |  INSERT INTO ${insert.table.sqlName} (${insert.fields.map(_.column.sqlName).mkString(", ")})
+        |  INSERT INTO ${insert.table.fullName} (${insert.fields.map(_.column.sqlName).mkString(", ")})
         |  VALUES (${params.map(_.name).map(s => s"$$$s").mkString(", ")})
         |\"\"\".update
       """.stripMargin.trim
