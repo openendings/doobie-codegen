@@ -29,7 +29,7 @@ object Code {
          """.stripMargin
 
 
-      (o, parts, OutFile(name, contents))
+      (o, parts, OutFile("gen", name, contents))
     }
 
     val tests = src.map { case (obj, parts, code) =>
@@ -64,7 +64,7 @@ object Code {
            |}
          """.stripMargin
 
-      OutFile(name, contents)
+      OutFile("gen", name, contents)
     }
 
     CodegenResult(src.map(_._3), tests)
@@ -99,7 +99,7 @@ object Code {
 
 import Code._
 
-case class OutFile(name: String, contents: String)
+case class OutFile(path: String, name: String, contents: String)
 
 sealed trait CodePart {def pp: String}
 

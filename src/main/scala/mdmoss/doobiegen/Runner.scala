@@ -59,27 +59,35 @@ object Runner {
     if (statements.length != parsers.length) throw new Throwable("Failed parsing. Exiting.")
 
     val model = statements.foldLeft(DbModel.empty)(DbModel.update)
-    model.tables.foreach(println)
 
+    model.tables.foreach(println)
     println(seperator)
 
     val plan = CodePlan.gen(model, config)
-    plan.objects.foreach(println)
 
+    plan.objects.foreach(println)
     println(seperator)
 
     val code = Code.gen(plan, config)
 
-    /* Delete everything currently in the target directories */
+    /* Create the top level target directories */
     val dirs = List(new File(config.srcDir), new File(config.testDir))
     dirs.foreach(_.mkdirs())
-    dirs.foreach(_.listFiles().forall(_.delete()))
+
+    /* Create / delete the contents of the actual destination dirs */
+    val srcDirs = code.src.map(s => new File(config.srcDir + "/" + s.path)).toSet
+    val testDirs = code.tests.map(s => new File(config.testDir + "/" + s.path)).toSet
+
+    srcDirs.foreach(_.mkdirs())
+    srcDirs.foreach(_.listFiles().map(_.delete()))
+    testDirs.foreach(_.mkdirs())
+    testDirs.foreach(_.listFiles().map(_.delete()))
 
     code.src.foreach { f =>
-      new PrintWriter(s"${config.srcDir}/${f.name}") {write(f.contents); close()}
+      new PrintWriter(s"${config.srcDir}/${f.path}/${f.name}") {write(f.contents); close()}
     }
     code.tests.foreach { f =>
-      new PrintWriter(s"${config.testDir}/${f.name}") {write(f.contents); close()}
+      new PrintWriter(s"${config.testDir}/${f.path}/${f.name}") {write(f.contents); close()}
     }
 
 

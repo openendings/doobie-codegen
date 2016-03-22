@@ -19,7 +19,7 @@ object CodePlan {
   def gen(model: DbModel, target: Target): CodePlan = {
     /* Basic things first. Generate an object for each table. */
     val basics = model.tables.map { t =>
-      ObjectPlan(target.`package`, objectName(t.ref), Seq(genInsert(t)))
+      ObjectPlan(target.`package` + ".gen", objectName(t.ref), Seq(genInsert(t)))
     }
 
     CodePlan(basics)
