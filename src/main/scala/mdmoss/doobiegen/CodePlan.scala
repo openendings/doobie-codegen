@@ -11,7 +11,7 @@ sealed trait PlanPart
 case class Insert(table: TableRef, fields: Seq[InsertParam]) extends PlanPart
 case class InsertParam(column: sql.Column, scalaType: ScalaType)
 
-case class ScalaType(symbol: String)
+case class ScalaType(symbol: String, arb: String)
 
 object CodePlan {
 
@@ -34,13 +34,13 @@ object CodePlan {
 
   def scalaType(column: sql.Column): ScalaType = {
     val base = column.sqlType match {
-      case sql.BigInt          => ScalaType("Long")
-      case sql.BigSerial       => ScalaType("Long")
-      case sql.Boolean         => ScalaType("Boolean")
-      case sql.DoublePrecision => ScalaType("Double")
-      case sql.Integer         => ScalaType("Integer")
-      case sql.Text            => ScalaType("String")
-      case sql.Timestamp       => ScalaType("Timestamp")
+      case sql.BigInt          => ScalaType("Long", "0L")
+      case sql.BigSerial       => ScalaType("Long", "0L")
+      case sql.Boolean         => ScalaType("Boolean", "true")
+      case sql.DoublePrecision => ScalaType("Double", "0.0")
+      case sql.Integer         => ScalaType("Integer", "0")
+      case sql.Text            => ScalaType("String", "\"\"")
+      case sql.Timestamp       => ScalaType("Timestamp", "new Timestamp(0L)")
     }
 
     base

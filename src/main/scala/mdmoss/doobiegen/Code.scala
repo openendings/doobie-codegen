@@ -37,7 +37,7 @@ object Code {
       val name = s"${obj.name}Spec.scala"
 
       val testParts = parts.flatMap {
-        case f @ FunctionDef(_, _, "Update0", _) => Some(checkTest(f))
+        case f @ FunctionDef(_, _, "Update0", _) => Some(checkTest(obj, f))
         case _ => None
       }
 
@@ -87,7 +87,9 @@ object Code {
     FunctionDef("insert", params, "Update0", body)
   }
 
-  def checkTest(f: FunctionDef): Block = Block(s"check(${f.name})")
+  def checkTest(o: ObjectPlan, f: FunctionDef): Block = Block(
+    s"check(${o.name}.${f.name}(${f.params.map(_.`type`.arb).mkString(", ")}))"
+  )
 
   implicit class indentString(s: String) {
     def indent(nSpaces: Int) = s.split("\n").map(p => " " * nSpaces + p).mkString("\n")
