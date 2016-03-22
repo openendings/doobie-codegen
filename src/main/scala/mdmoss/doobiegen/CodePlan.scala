@@ -1,5 +1,6 @@
 package mdmoss.doobiegen
 
+import mdmoss.doobiegen.Runner.Target
 import mdmoss.doobiegen.sql.TableRef
 
 case class CodePlan(objects: Seq[ObjectPlan])
@@ -15,10 +16,10 @@ case class ScalaType(symbol: String, arb: String)
 
 object CodePlan {
 
-  def gen(packageRoot: String, model: DbModel): CodePlan = {
+  def gen(model: DbModel, target: Target): CodePlan = {
     /* Basic things first. Generate an object for each table. */
     val basics = model.tables.map { t =>
-      ObjectPlan(packageRoot, objectName(t.ref), Seq(genInsert(t)))
+      ObjectPlan(target.`package`, objectName(t.ref), Seq(genInsert(t)))
     }
 
     CodePlan(basics)

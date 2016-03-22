@@ -16,8 +16,9 @@ object Runner {
       "test",
       "test"
     ),
-    "out/src/main/scala/mdmoss/doobiegen/db",
-    "out/src/test/scala/mdmoss/doobiegen/db"
+    srcDir    = "out/src/main/scala/mdmoss/doobiegen/db",
+    testDir   = "out/src/test/scala/mdmoss/doobiegen/db",
+    `package` = "mdmoss.doobiegen.db"
   )
 
   def main(args: Array[String]) {
@@ -62,7 +63,7 @@ object Runner {
 
     println(seperator)
 
-    val plan = CodePlan.gen("mdmoss.doobiegen.db", model)
+    val plan = CodePlan.gen(model, config)
     plan.objects.foreach(println)
 
     println(seperator)
@@ -87,5 +88,5 @@ object Runner {
   val seperator = "*" * 80
 
   case class TestDatabase(driver: String, url: String, username: String, password: String)
-  case class Target(testDb: TestDatabase, srcDir: String, testDir: String)
+  case class Target(testDb: TestDatabase, srcDir: String, testDir: String, `package`: String)
 }
