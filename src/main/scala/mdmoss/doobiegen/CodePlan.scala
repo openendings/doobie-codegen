@@ -38,7 +38,7 @@ object CodePlan {
       case sql.BigSerial       => ScalaType("Long", "0L")
       case sql.Boolean         => ScalaType("Boolean", "true")
       case sql.DoublePrecision => ScalaType("Double", "0.0")
-      case sql.Integer         => ScalaType("Integer", "0")
+      case sql.Integer         => ScalaType("Int", "0")
       case sql.Text            => ScalaType("String", "\"\"")
       case sql.Timestamp       => ScalaType("Timestamp", "new Timestamp(0L)")
     }

@@ -80,7 +80,7 @@ object Code {
     val body =
       s"""sql\"\"\"
         |  INSERT INTO ${insert.table.sqlName} (${insert.fields.map(_.column.sqlName).mkString(", ")})
-        |  VALUES (${params.map(_.name).mkString(", ")})
+        |  VALUES (${params.map(_.name).map(s => s"$$$s").mkString(", ")})
         |\"\"\".update
       """.stripMargin.trim
 
