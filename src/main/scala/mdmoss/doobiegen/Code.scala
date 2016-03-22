@@ -25,7 +25,6 @@ object Code {
            |object ${o.name} {
            |
            |${parts.map(_.pp).mkString("\n").indent(2)}
-           |
            |}
          """.stripMargin
 
