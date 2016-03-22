@@ -12,7 +12,9 @@ object sql {
   case object Timestamp       extends Type
 
   sealed trait TableProperty
-  case class Column(sqlName: String, sqlType: Type, properties: Seq[ColumnProperty]) extends TableProperty
+  case class Column(sqlName: String, sqlType: Type, properties: Seq[ColumnProperty]) extends TableProperty {
+    def nullible = properties.contains(Null) || (!properties.contains(NotNull) && !properties.contains(PrimaryKey))
+  }
 
   case class TableRef(schema: Option[String], sqlName: String) {
     /* I don't like this name. @todo change this. */

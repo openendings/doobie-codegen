@@ -43,7 +43,10 @@ object CodePlan {
       case sql.Timestamp       => ScalaType("Timestamp", "new Timestamp(0L)")
     }
 
-    base
+    column.nullible match {
+      case true => ScalaType(s"Option[${base.symbol}]", "None")
+      case false => base
+    }
   }
 
   def objectName(tableRef: TableRef) = {
