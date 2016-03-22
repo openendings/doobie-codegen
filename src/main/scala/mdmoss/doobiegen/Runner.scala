@@ -88,5 +88,7 @@ object Runner {
   val seperator = "*" * 80
 
   case class TestDatabase(driver: String, url: String, username: String, password: String)
-  case class Target(testDb: TestDatabase, srcDir: String, testDir: String, `package`: String)
+  case class Target(testDb: TestDatabase, srcDir: String, testDir: String, `package`: String) {
+    def enclosingPackage = `package`.split('.').reverse.headOption
+  }
 }

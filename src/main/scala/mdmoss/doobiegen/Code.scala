@@ -11,7 +11,7 @@ object Code {
       val name = s"${o.name}.scala"
 
       val parts = o.code.flatMap {
-        case i @ Insert(_, _) => Some(genInsert(i))
+        case i @ Insert(_, _) => Some(genInsert(i, target))
         case _ => None
       }
 
@@ -36,7 +36,7 @@ object Code {
       val name = s"${obj.name}Spec.scala"
 
       val testParts = parts.flatMap {
-        case f @ FunctionDef(_, _, "Update0", _) => Some(checkTest(obj, f))
+        case f @ FunctionDef(_, _, _, "Update0", _) => Some(checkTest(obj, f))
         case _ => None
       }
 
@@ -70,7 +70,7 @@ object Code {
     CodegenResult(src.map(_._3), tests)
   }
 
-  def genInsert(insert: Insert): CodePart = {
+  def genInsert(insert: Insert, target: Target): CodePart = {
 
     val params = insert.fields.map { f =>
       FunctionParam(f.column.sqlName, f.scalaType)
@@ -85,7 +85,7 @@ object Code {
         |\"\"\".update
       """.stripMargin.trim
 
-    FunctionDef("insert", params, "Update0", body)
+    FunctionDef(target.enclosingPackage, "insert", params, "Update0", body)
   }
 
   def checkTest(o: ObjectPlan, f: FunctionDef): Block = Block(
@@ -107,12 +107,15 @@ case class Import(`package`: String) extends CodePart {
   def pp = s"import ${`package`}"
 }
 
-case class FunctionDef(name: String, params: Seq[FunctionParam], returnType: String, body: String) extends CodePart {
-  def pp =
-    s"""def $name(${params.map{p => s"${p.name}: ${p.`type`.symbol}"}.mkString(", ")}): $returnType = {
+case class FunctionDef(privatePkg: Option[String], name: String, params: Seq[FunctionParam], returnType: String, body: String) extends CodePart {
+  def pp = {
+    val prv = privatePkg.map(p => s"private[$p] ").getOrElse("")
+
+    s"""${prv}def $name(${params.map { p => s"${p.name}: ${p.`type`.symbol}" }.mkString(", ")}): $returnType = {
        |${body.indent(2)}
        |}
      """.stripMargin
+  }
 }
 case class FunctionParam(name: String, `type`: ScalaType)
 
