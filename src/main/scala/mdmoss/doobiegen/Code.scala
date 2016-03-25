@@ -12,7 +12,7 @@ object Code {
 
       val parts = o.code.flatMap {
         case i @ Insert(_, _) => Some(genInsert(i, target))
-        case _ => None
+        case p @ PKNewtype(_, _) => Some(genPkNewtype(p, target))
       }
 
       val contents =
@@ -88,6 +88,13 @@ object Code {
     FunctionDef(target.enclosingPackage, "insert", params, "Update0", body)
   }
 
+  def genPkNewtype(pk: PKNewtype, target: Target): CodePart = {
+
+    val types = pk.columns.zip(pk.columns.map(CodePlan.getScalaType))
+
+    CaseClassDef(pk.scalaType.symbol, types.map(t => CaseClassField(t._1.sqlName, t._2)))
+  }
+
   def checkTest(o: ObjectPlan, f: FunctionDef): Block = Block(
     s"check(${o.name}.${f.name}(${f.params.map(_.`type`.arb).mkString(", ")}))"
   )
@@ -118,6 +125,13 @@ case class FunctionDef(privatePkg: Option[String], name: String, params: Seq[Fun
   }
 }
 case class FunctionParam(name: String, `type`: ScalaType)
+
+case class CaseClassDef(name: String, fields: Seq[CaseClassField]) extends CodePart {
+  def pp = {
+    s"case class $name(${fields.map(f => s"${f.name}: ${f.`type`.symbol}").mkString(", ")})"
+  }
+}
+case class CaseClassField(name: String, `type`: ScalaType)
 
 case class Block(body: String) extends CodePart {
   override def pp: String = body
