@@ -15,7 +15,8 @@ object Code {
       val parts = o.code.flatMap {
         case i @ Insert(_, _) => Some(genInsert(i, target))
         case p @ PKNewtype(_, _) => Some(genPkNewtype(p, target))
-        case r @ RowRep(_, _) => Some(genRowRep(r, target))
+        case r @ RowRep(_, _, _) => Some(genRowRep(r, target))
+        case c @ Create(_, _) => Some(genCreate(c, target))
       }
 
       val contents =
@@ -98,9 +99,23 @@ object Code {
   }
 
   def genRowRep(row: RowRep, target: Target): CodePart = {
-
-
     CaseClassDef(row.table.scalaName + "Row", row.fields.map(f => CaseClassField(f.name, f.`type`)))
+  }
+
+  def genCreate(create: Create, target: Target): CodePart = {
+
+    val params = create.insert.fields.map { f =>
+      FunctionParam(f.column.scalaName, f.scalaType)
+    }
+/*
+    val body =
+      s"""
+         |insert(${params.map(_.name).mkString(", ")}).withUniqueGeneratedKeys[${create.rowRep.scalaType.symbol}]
+         |  (${create.rowRep.fields.map(_.)})
+         |
+       """.stripMargin*/
+
+    FunctionDef(None, "create", params, create.rowRep.scalaType.symbol, "")
   }
 
   def checkTest(o: ObjectPlan, f: FunctionDef): Block = Block(

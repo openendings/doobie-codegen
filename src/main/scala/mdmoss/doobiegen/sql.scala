@@ -32,12 +32,13 @@ object sql {
     def columns = properties.flatten {
       case c @ Column(_, _, _) => Some(c)
       case _ => None
-    }
+    }.toList
     def primaryKeyColumns = columns.filter(_.properties.contains(PrimaryKey)) ++
       properties.flatMap {
         case CompositePrimaryKey(names) => columns.filter(c => names.contains(c.sqlName))
         case _ => Seq()
-      }
+      }.toList
+    def nonPrimaryKeyColumns = columns.filterNot(primaryKeyColumns.contains)
   }
 
   sealed trait ColumnProperty

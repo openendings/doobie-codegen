@@ -1,7 +1,7 @@
 package mdmoss.doobiegen
 
 import mdmoss.doobiegen.Runner.Target
-import mdmoss.doobiegen.sql.{PrimaryKey, Column, TableRef}
+import mdmoss.doobiegen.sql.TableRef
 
 case class CodePlan(objects: Seq[ObjectPlan])
 
@@ -16,8 +16,10 @@ case class PKNewtype(columns: Seq[sql.Column], scalaType: ScalaType) extends Pla
   def isComposite = columns.length > 1
 }
 
-case class RowRep(table: TableRef, fields: Seq[RowRepField]) extends PlanPart
+case class RowRep(table: TableRef, fields: Seq[RowRepField], scalaType: ScalaType) extends PlanPart
 case class RowRepField(name: String, `type`: ScalaType)
+
+case class Create(insert: Insert, rowRep: RowRep) extends PlanPart
 
 case class ScalaType(symbol: String, arb: String)
 
@@ -30,8 +32,9 @@ object CodePlan {
         val insert = genInsert(t)
         val pk = genPk(t)
         val rowRep = genRowRep(t, pk)
+        val create = genCreate(t, insert, rowRep)
 
-        Seq(insert) ++ pk.toSeq ++ Seq(rowRep)
+        Seq(insert) ++ pk.toSeq ++ Seq(rowRep, create)
       }
 
       ObjectPlan(target.`package` + ".gen", t.ref.scalaName, parts)
@@ -53,7 +56,7 @@ object CodePlan {
       table.primaryKeyColumns.length match {
       case 0 => None
       case _ =>
-        val scalaTypeName = table.ref.scalaName + (table.primaryKeyColumns.toList match {
+        val scalaTypeName = table.ref.scalaName + (table.primaryKeyColumns match {
           case c :: Nil => c.scalaName.capitalize
           case _ => "PrimaryKey"
         })
@@ -78,7 +81,16 @@ object CodePlan {
       RowRepField(c.scalaName, getScalaType(c))
     }
 
-    RowRep(t.ref, primaryKey ++ nonPrimaryKeys)
+    val fields = primaryKey ++ nonPrimaryKeys
+
+    val scalaTypeName = t.ref.scalaName.capitalize + "Row"
+    val arb = s"$scalaTypeName(" + fields.map(_.`type`).map(_.arb).mkString(", ") + ")"
+
+    RowRep(t.ref, fields, ScalaType(scalaTypeName, arb))
+  }
+
+  def genCreate(t: sql.Table, insert: Insert, rowRep: RowRep): Create = {
+    Create(insert, rowRep)
   }
 
   def getScalaType(column: sql.Column): ScalaType = {
@@ -109,5 +121,4 @@ object CodePlan {
   implicit class camelCaseStrings(s: String) {
     def camelCase: String = """_([a-z])""".r.replaceAllIn(s, m => m.group(1).capitalize)
   }
-
 }

@@ -70,7 +70,16 @@ object Runner {
 
     val code = Code.gen(plan, config)
 
-    /* Create the top level target directories */
+    val objs = model.tables.map(t => new GenPlan(model, t, config))
+    objs.foreach { p =>
+      println(seperator)
+      println(p.targetPackage)
+      println(p.targetObject)
+      println(p.pkNewType)
+      println(p.rowNewType)
+    }
+
+/*    /* Create the top level target directories */
     val dirs = List(new File(config.srcDir), new File(config.testDir))
     dirs.foreach(_.mkdirs())
 
@@ -88,7 +97,7 @@ object Runner {
     }
     code.tests.foreach { f =>
       new PrintWriter(s"${config.testDir}/${f.path}/${f.name}") {write(f.contents); close()}
-    }
+    }*/
 
 
   }
