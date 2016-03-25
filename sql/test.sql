@@ -25,3 +25,9 @@ CREATE TABLE test_nullible (
 CREATE TABLE test_pk (
     id BIGINT PRIMARY KEY
 );
+
+CREATE TABLE test_composite_pk (
+    id1 BIGINT,
+    id2 BIGINT,
+    PRIMARY KEY(id1, id2)
+);

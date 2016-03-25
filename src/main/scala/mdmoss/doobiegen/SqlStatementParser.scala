@@ -9,13 +9,20 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
   def Statement = rule { CreateTable | CreateSchema }
 
   def CreateTable: Rule1[sql.Statement] = rule {
-    ("CREATE TABLE " ~ TableRef ~ '(' ~ OptionalWhitespace ~ zeroOrMore(Column) ~ ");") ~>
+    ("CREATE TABLE " ~ TableRef ~ '(' ~ OptionalWhitespace ~ zeroOrMore(TableProperty) ~ ");") ~>
        { (ref, columns) => sql.CreateTable(ref, columns) }
   }
+
+  def TableProperty: Rule1[sql.TableProperty] = rule { Column | CompositePrimaryKey }
 
   def Column: Rule1[sql.Column] = rule {
     (ValidIdentifier ~ Type ~ zeroOrMore(ColumnProperty) ~ optional(',') ~ OptionalWhitespace) ~>
       { (id, typ, props) => sql.Column(id, typ, props) }
+  }
+
+  def CompositePrimaryKey: Rule1[sql.CompositePrimaryKey] = rule {
+    ("PRIMARY KEY" ~ '(' ~ oneOrMore(ValidIdentifier ~ optional(',') ~ OptionalWhitespace) ~ ')' ~ OptionalWhitespace) ~>
+      { pkn: Seq[String] => sql.CompositePrimaryKey(pkn) }
   }
 
   /* Note: all of these must be lowercase, and this isn't enforced by parboiled :/ */

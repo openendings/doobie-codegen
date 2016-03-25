@@ -49,35 +49,25 @@ object CodePlan {
   }
 
   def genPk(table: sql.Table): Option[PKNewtype] = {
-    val pkColumns = table.properties.flatMap {
-      case c@Column(_, _, props) if props.contains(PrimaryKey) => Some(c)
-      case _                                                   => None
-    }
 
-    pkColumns.length match {
+      table.primaryKeyColumns.length match {
       case 0 => None
       case _ =>
-        val scalaTypeName = table.ref.scalaName + (pkColumns.toList match {
+        val scalaTypeName = table.ref.scalaName + (table.primaryKeyColumns.toList match {
           case c :: Nil => c.scalaName.capitalize
           case _ => "PrimaryKey"
         })
 
-        val arb = s"$scalaTypeName(" + pkColumns.map(getScalaType).map(_.arb).mkString(", ") + ")"
+        val arb = s"$scalaTypeName(" + table.primaryKeyColumns.map(getScalaType).map(_.arb).mkString(", ") + ")"
 
         val scalaType = ScalaType(scalaTypeName, arb)
-        Some(PKNewtype(pkColumns, scalaType))
+        Some(PKNewtype(table.primaryKeyColumns, scalaType))
     }
   }
 
   def genRowRep(t: sql.Table, pk: Option[PKNewtype]): RowRep = {
 
     val primaryKey = pk.map { p =>
-
-
-      println
-      println(p.columns)
-      println
-
       p.columns.toList match {
         case c :: Nil => RowRepField(c.scalaName, p.scalaType)
         case _        => RowRepField("primaryKey", p.scalaType)

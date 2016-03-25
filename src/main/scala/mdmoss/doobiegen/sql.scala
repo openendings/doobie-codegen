@@ -16,6 +16,8 @@ object sql {
     def isNullible = properties.contains(Null) || (!properties.contains(NotNull) && !properties.contains(PrimaryKey))
   }
 
+  case class CompositePrimaryKey(columnNames: Seq[String]) extends TableProperty
+
   case class TableRef(schema: Option[String], sqlName: String) {
     /* I don't like this name. @todo change this. */
     def fullName = schema.map(s => s"$s.").getOrElse("") + sqlName
@@ -31,7 +33,11 @@ object sql {
       case c @ Column(_, _, _) => Some(c)
       case _ => None
     }
-    def primaryKeyColumns = columns.filter(_.properties.contains(PrimaryKey))
+    def primaryKeyColumns = columns.filter(_.properties.contains(PrimaryKey)) ++
+      properties.flatMap {
+        case CompositePrimaryKey(names) => columns.filter(c => names.contains(c.sqlName))
+        case _ => Seq()
+      }
   }
 
   sealed trait ColumnProperty
