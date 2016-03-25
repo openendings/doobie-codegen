@@ -15,6 +15,7 @@ object Code {
       val parts = o.code.flatMap {
         case i @ Insert(_, _) => Some(genInsert(i, target))
         case p @ PKNewtype(_, _) => Some(genPkNewtype(p, target))
+        case r @ RowRep(_, _) => Some(genRowRep(r, target))
       }
 
       val contents =
@@ -94,6 +95,12 @@ object Code {
     val types = pk.columns.zip(pk.columns.map(CodePlan.getScalaType))
 
     CaseClassDef(pk.scalaType.symbol, types.map(t => CaseClassField(t._1.sqlName, t._2)))
+  }
+
+  def genRowRep(row: RowRep, target: Target): CodePart = {
+
+
+    CaseClassDef(row.table.scalaName + "Row", row.fields.map(f => CaseClassField(f.name, f.`type`)))
   }
 
   def checkTest(o: ObjectPlan, f: FunctionDef): Block = Block(

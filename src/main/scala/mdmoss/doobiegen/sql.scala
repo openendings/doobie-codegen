@@ -13,7 +13,7 @@ object sql {
 
   sealed trait TableProperty
   case class Column(sqlName: String, sqlType: Type, properties: Seq[ColumnProperty]) extends TableProperty {
-    def nullible = properties.contains(Null) || (!properties.contains(NotNull) && !properties.contains(PrimaryKey))
+    def isNullible = properties.contains(Null) || (!properties.contains(NotNull) && !properties.contains(PrimaryKey))
   }
 
   case class TableRef(schema: Option[String], sqlName: String) {
@@ -26,7 +26,13 @@ object sql {
 
   case class CreateSchema(name: String) extends Statement
 
-  case class Table(ref: TableRef, properties: Seq[TableProperty])
+  case class Table(ref: TableRef, properties: Seq[TableProperty]) {
+    def columns = properties.flatten {
+      case c @ Column(_, _, _) => Some(c)
+      case _ => None
+    }
+    def primaryKeyColumns = columns.filter(_.properties.contains(PrimaryKey))
+  }
 
   sealed trait ColumnProperty
   case object Null       extends ColumnProperty

@@ -12,7 +12,12 @@ sealed trait PlanPart
 case class Insert(table: TableRef, fields: Seq[InsertParam]) extends PlanPart
 case class InsertParam(column: sql.Column, scalaType: ScalaType)
 
-case class PKNewtype(columns: Seq[sql.Column], scalaType: ScalaType) extends PlanPart
+case class PKNewtype(columns: Seq[sql.Column], scalaType: ScalaType) extends PlanPart {
+  def isComposite = columns.length > 1
+}
+
+case class RowRep(table: TableRef, fields: Seq[RowRepField]) extends PlanPart
+case class RowRepField(name: String, `type`: ScalaType)
 
 case class ScalaType(symbol: String, arb: String)
 
@@ -24,8 +29,9 @@ object CodePlan {
       val parts = {
         val insert = genInsert(t)
         val pk = genPk(t)
+        val rowRep = genRowRep(t, pk)
 
-        Seq(insert) ++ pk.toSeq
+        Seq(insert) ++ pk.toSeq ++ Seq(rowRep)
       }
 
       ObjectPlan(target.`package` + ".gen", t.ref.scalaName, parts)
@@ -51,8 +57,8 @@ object CodePlan {
     pkColumns.length match {
       case 0 => None
       case _ =>
-        val scalaTypeName = table.ref.scalaName + (pkColumns match {
-          case c :: Nil => c.scalaName
+        val scalaTypeName = table.ref.scalaName + (pkColumns.toList match {
+          case c :: Nil => c.scalaName.capitalize
           case _ => "PrimaryKey"
         })
 
@@ -61,6 +67,28 @@ object CodePlan {
         val scalaType = ScalaType(scalaTypeName, arb)
         Some(PKNewtype(pkColumns, scalaType))
     }
+  }
+
+  def genRowRep(t: sql.Table, pk: Option[PKNewtype]): RowRep = {
+
+    val primaryKey = pk.map { p =>
+
+
+      println
+      println(p.columns)
+      println
+
+      p.columns.toList match {
+        case c :: Nil => RowRepField(c.scalaName, p.scalaType)
+        case _        => RowRepField("primaryKey", p.scalaType)
+      }
+    }.toSeq
+
+    val nonPrimaryKeys = t.columns.filterNot(t.primaryKeyColumns.contains).map { c =>
+      RowRepField(c.scalaName, getScalaType(c))
+    }
+
+    RowRep(t.ref, primaryKey ++ nonPrimaryKeys)
   }
 
   def getScalaType(column: sql.Column): ScalaType = {
@@ -74,7 +102,7 @@ object CodePlan {
       case sql.Timestamp       => ScalaType("Timestamp", "new Timestamp(0L)")
     }
 
-    column.nullible match {
+    column.isNullible match {
       case true => ScalaType(s"Option[${base.symbol}]", "None")
       case false => base
     }
