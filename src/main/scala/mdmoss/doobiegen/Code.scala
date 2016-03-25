@@ -6,6 +6,8 @@ object Code {
 
   case class CodegenResult(src: Seq[OutFile], tests: Seq[OutFile])
 
+  import CodePlan._
+
   def gen(plan: CodePlan, target: Target): CodegenResult = {
     val src = plan.objects.map { o =>
       val name = s"${o.name}.scala"
@@ -27,7 +29,6 @@ object Code {
            |${parts.map(_.pp).mkString("\n").indent(2)}
            |}
          """.stripMargin
-
 
       (o, parts, OutFile("gen", name, contents))
     }
@@ -73,7 +74,7 @@ object Code {
   def genInsert(insert: Insert, target: Target): CodePart = {
 
     val params = insert.fields.map { f =>
-      FunctionParam(f.column.sqlName, f.scalaType)
+      FunctionParam(f.column.scalaName, f.scalaType)
     }
 
     val tableRef = insert.table

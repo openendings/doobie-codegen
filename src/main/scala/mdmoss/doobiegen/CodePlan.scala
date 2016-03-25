@@ -28,7 +28,7 @@ object CodePlan {
         Seq(insert) ++ pk.toSeq
       }
 
-      ObjectPlan(target.`package` + ".gen", objectName(t.ref), parts)
+      ObjectPlan(target.`package` + ".gen", t.ref.scalaName, parts)
     }
 
     CodePlan(basics)
@@ -51,12 +51,12 @@ object CodePlan {
     pkColumns.length match {
       case 0 => None
       case _ =>
-        val scalaTypeName = table.ref.sqlName + (pkColumns match {
-          case c :: Nil => c.sqlName
+        val scalaTypeName = table.ref.scalaName + (pkColumns match {
+          case c :: Nil => c.scalaName
           case _ => "PrimaryKey"
         })
 
-        val arb = s"scalaTypeName(" + pkColumns.map(getScalaType).map(_.arb).mkString(", ") + ")"
+        val arb = s"$scalaTypeName(" + pkColumns.map(getScalaType).map(_.arb).mkString(", ") + ")"
 
         val scalaType = ScalaType(scalaTypeName, arb)
         Some(PKNewtype(pkColumns, scalaType))
@@ -80,8 +80,16 @@ object CodePlan {
     }
   }
 
-  def objectName(tableRef: TableRef) = {
-    """_([a-z])""".r.replaceAllIn(tableRef.sqlName, m => m.group(1).capitalize).capitalize
+  implicit class TableRefProps(t: sql.TableRef) {
+    def scalaName = t.sqlName.camelCase.capitalize
+  }
+
+  implicit class ColumnProps(c: sql.Column) {
+    def scalaName = c.sqlName.camelCase
+  }
+
+  implicit class camelCaseStrings(s: String) {
+    def camelCase: String = """_([a-z])""".r.replaceAllIn(s, m => m.group(1).capitalize)
   }
 
 }
