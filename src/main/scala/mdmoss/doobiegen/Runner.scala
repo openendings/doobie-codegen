@@ -77,6 +77,10 @@ object Runner {
       println(p.targetObject)
       println(p.pkNewType)
       println(p.rowNewType)
+      println
+      println(p.insert)
+      println
+      println(p.insert.fn.pp)
     }
 
 /*    /* Create the top level target directories */

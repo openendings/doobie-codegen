@@ -3,11 +3,15 @@ package mdmoss.doobiegen
 import mdmoss.doobiegen.Runner.Target
 import mdmoss.doobiegen.sql.{Column, Table}
 
+trait CodeBits {def parts: Seq[CodePart]}
+
 class GenPlan(model: DbModel, table: Table, target: Target) {
 
   def targetPackage = target.`package` + table.ref.schema.map(s => s".$s").getOrElse("") + ".gen"
 
   def targetObject = table.ref.sqlName.camelCase.capitalize
+
+  def privateScope = targetPackage.split('.').reverse.head
 
   case class RowRepField(source: List[Column], scalaName: String, scalaType: ScalaType)
 
@@ -31,9 +35,27 @@ class GenPlan(model: DbModel, table: Table, target: Target) {
     }
 
     val parts = pkPart.toList ++ table.nonPrimaryKeyColumns.map(_.scalaRep)
-
     (parts, ScalaType(targetObject + "Row", merge(targetObject + "Row", parts.map(_.scalaType))))
   }
+
+  case class Insert(fn: FunctionDef) extends CodeBits { def parts: Seq[CodePart] = Seq(fn) }
+
+  def insert: Insert = {
+    val params = rowNewType._1.map(t => FunctionParam(t.scalaName, t.scalaType))
+    val body =
+      s"""sql\"\"\"
+          |  INSERT INTO ${table.ref.fullName} (${rowNewType._1.sqlColumns})
+          |  VALUES (${params.map(_.name).map(s => s"$$$s").mkString(", ")})
+          |\"\"\".update
+      """.stripMargin.trim
+
+    val fn = FunctionDef(Some(privateScope), "insert", params, "Update0", body)
+    Insert(fn)
+  }
+
+
+
+
 
   /* Helpers */
   implicit class CamelCaseStrings(s: String) {
@@ -62,6 +84,10 @@ class GenPlan(model: DbModel, table: Table, target: Target) {
     }
 
     def scalaRep = RowRepField(List(column), scalaName, scalaType)
+  }
+
+  implicit class RowRepsForInsert(l: List[RowRepField]) {
+    def sqlColumns: String = l.flatMap(_.source).map(_.sqlName).mkString(", ")
   }
 
   /** Returns an arbitrary using the given constructor and the arb instance for each type in order */
