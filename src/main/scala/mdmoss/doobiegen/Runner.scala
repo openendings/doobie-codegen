@@ -60,15 +60,15 @@ object Runner {
 
     val model = statements.foldLeft(DbModel.empty)(DbModel.update)
 
-    model.tables.foreach(println)
-    println(seperator)
+/*    model.tables.foreach(println)
+    println(seperator)*/
 
-    val plan = CodePlan.gen(model, config)
+/*    val plan = CodePlan.gen(model, config)*/
 
-    plan.objects.foreach(println)
-    println(seperator)
+/*    plan.objects.foreach(println)
+    println(seperator)*/
 
-    val code = Code.gen(plan, config)
+/*    val code = Code.gen(plan, config)
 
     val objs = model.tables.map(t => new GenPlan(model, t, config))
     objs.foreach { p =>
@@ -81,27 +81,17 @@ object Runner {
       println(p.insert)
       println
       println(p.insert.fn.pp)
-    }
-
-/*    /* Create the top level target directories */
-    val dirs = List(new File(config.srcDir), new File(config.testDir))
-    dirs.foreach(_.mkdirs())
-
-    /* Create / delete the contents of the actual destination dirs */
-    val srcDirs = code.src.map(s => new File(config.srcDir + "/" + s.path)).toSet
-    val testDirs = code.tests.map(s => new File(config.testDir + "/" + s.path)).toSet
-
-    srcDirs.foreach(_.mkdirs())
-    srcDirs.foreach(_.listFiles().map(_.delete()))
-    testDirs.foreach(_.mkdirs())
-    testDirs.foreach(_.listFiles().map(_.delete()))
-
-    code.src.foreach { f =>
-      new PrintWriter(s"${config.srcDir}/${f.path}/${f.name}") {write(f.contents); close()}
-    }
-    code.tests.foreach { f =>
-      new PrintWriter(s"${config.testDir}/${f.path}/${f.name}") {write(f.contents); close()}
     }*/
+
+    val analysis = new Analysis(model, config)
+
+    model.tables.foreach { t =>
+      println(seperator)
+      println(t.ref.fullName)
+      println(analysis.targetPackage(t))
+      println(analysis.targetObject(t))
+      println(analysis.privateScope(t))
+    }
 
 
   }
