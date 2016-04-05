@@ -63,26 +63,6 @@ object Runner {
 /*    model.tables.foreach(println)
     println(seperator)*/
 
-/*    val plan = CodePlan.gen(model, config)*/
-
-/*    plan.objects.foreach(println)
-    println(seperator)*/
-
-/*    val code = Code.gen(plan, config)
-
-    val objs = model.tables.map(t => new GenPlan(model, t, config))
-    objs.foreach { p =>
-      println(seperator)
-      println(p.targetPackage)
-      println(p.targetObject)
-      println(p.pkNewType)
-      println(p.rowNewType)
-      println
-      println(p.insert)
-      println
-      println(p.insert.fn.pp)
-    }*/
-
     val analysis = new Analysis(model, config)
 
     model.tables.foreach { t =>
@@ -96,8 +76,6 @@ object Runner {
       println(analysis.insert(t))
       println(analysis.insert(t))
     }
-
-
   }
 
   val seperator = "*" * 80

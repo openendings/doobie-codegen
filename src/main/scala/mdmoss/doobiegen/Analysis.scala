@@ -45,6 +45,8 @@ object Analysis {
   def merge(constructor: String, scalaTypes: List[ScalaType]): String = {
     s"$constructor(" + scalaTypes.map(_.arb).mkString(", ") + ")"
   }
+
+  trait CodeBits { def parts: Seq[CodePart] }
 }
 
 class Analysis(model: DbModel, target: Target) {
