@@ -49,7 +49,7 @@ object Analysis {
   trait CodeBits { def parts: Seq[CodePart] }
 }
 
-class Analysis(model: DbModel, target: Target) {
+class Analysis(val model: DbModel, val target: Target) {
   import Analysis._
 
   def targetPackage(table: Table) = target.`package` + table.ref.schema.map(s => s".$s").getOrElse("") + ".gen"

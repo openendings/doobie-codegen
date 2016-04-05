@@ -10,9 +10,9 @@ object SourceWriter {
     *
     * @param sourceRoot should be src/ directory of project
     */
-  def write(sourceRoot: Path, files: Seq[File], test: Boolean): Unit = {
+  def write(sourceRoot: Path, files: Seq[File]): Unit = {
     files.foreach { f =>
-      val mainOrTest = if (test) "test" else "main"
+      val mainOrTest = if (f.isTest) "test" else "main"
 
       val destDir = Paths.get(sourceRoot.toString, List(mainOrTest, "scala") ++ f.`package`.split('.'):_*)
       Files.createDirectories(destDir)
@@ -27,11 +27,10 @@ object SourceWriter {
   def main(args: Array[String]) {
 
     val files = Seq(
-      File("a.b.c", "Test.scala", "Wah"),
-      File("b.c.a", "Test2.scala", "Woh")
+      File("a.b.c", "Test.scala", "Wah", true),
+      File("b.c.a", "Test2.scala", "Woh", false)
     )
 
-    write(Paths.get(""), files, true)
-    write(Paths.get(""), files, false)
+    write(Paths.get(""), files)
   }
 }
