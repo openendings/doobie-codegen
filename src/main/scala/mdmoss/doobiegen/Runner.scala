@@ -91,6 +91,10 @@ object Runner {
       println(analysis.targetPackage(t))
       println(analysis.targetObject(t))
       println(analysis.privateScope(t))
+      println(analysis.pkNewType(t))
+      println(analysis.rowNewType(t))
+      println(analysis.insert(t))
+      println(analysis.insert(t))
     }
 
 
