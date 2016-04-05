@@ -63,9 +63,9 @@ class Analysis(val model: DbModel, val target: Target) {
     case Nil      => None
     case c :: Nil =>
       val rep = c.scalaRep.copy(scalaName = "value")
-      Some((List(rep), ScalaType(targetObject(table) + c.sqlName.camelCase.capitalize, c.scalaType.arb)))
+      Some((List(rep), ScalaType(c.sqlName.camelCase.capitalize, c.scalaType.arb)))
     case cs       =>
-      val name = targetObject(table) + "PrimaryKey"
+      val name = "PrimaryKey"
       val arb = merge(name, cs.map(_.scalaType))
       Some((cs.map(_.scalaRep), ScalaType(name, arb)))
   }
@@ -79,7 +79,7 @@ class Analysis(val model: DbModel, val target: Target) {
     }
 
     val parts = pkPart.toList ++ table.nonPrimaryKeyColumns.map(_.scalaRep)
-    (parts, ScalaType(targetObject(table) + "Row", merge(targetObject(table) + "Row", parts.map(_.scalaType))))
+    (parts, ScalaType("Row", merge(targetObject(table) + "Row", parts.map(_.scalaType))))
   }
 
   def insert(table: Table): Insert = {

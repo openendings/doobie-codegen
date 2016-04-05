@@ -23,9 +23,9 @@ class Generator(analysis: Analysis) {
             |
             |object ${a.targetObject(t)} {
             |
-            |${genPkNewType(t)}
+            |  ${genPkNewType(t)}
             |
-            |
+            |  ${genRowType(t)}
             |}
          """.stripMargin
 
@@ -45,9 +45,11 @@ class Generator(analysis: Analysis) {
     a.pkNewType(table).map { pk =>
       s"case class ${pk._2.symbol}(${pk._1.map(f => s"${f.scalaName}: ${f.scalaType.symbol}").mkString(", ")})"
     }.getOrElse("")
+  }
 
-
-
+  def genRowType(table: Table): String = {
+    val row = a.rowNewType(table)
+    s"case class ${row._2.symbol}(${row._1.map(f => s"${f.scalaName}: ${f.scalaType.symbol}").mkString(", ")})"
   }
 
 }
