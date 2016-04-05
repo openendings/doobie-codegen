@@ -1,6 +1,7 @@
 package mdmoss.doobiegen
 
 import mdmoss.doobiegen.output.File
+import mdmoss.doobiegen.sql.Table
 
 class Generator(analysis: Analysis) {
 
@@ -16,13 +17,13 @@ class Generator(analysis: Analysis) {
       val contents =
         s"""package ${a.targetPackage(t)}
             |
-            |/* Todo handle imports */
+            |/* Todo handle imports better */
             |import doobie.imports._
             |import java.sql.Timestamp
             |
             |object ${a.targetObject(t)} {
             |
-            |  ${a.pkNewType(t)}
+            |${genPkNewType(t)}
             |
             |
             |}
@@ -32,17 +33,21 @@ class Generator(analysis: Analysis) {
       File(
         a.targetPackage(t),
         a.targetObject(t) + ".scala",
-        "",
+        contents,
         isTest = false
       )
     }
 
-
-
-
-
-
     tableFiles
+  }
+
+  def genPkNewType(table: Table): String = {
+    a.pkNewType(table).map { pk =>
+      s"case class ${pk._2.symbol}(${pk._1.map(f => s"${f.scalaName}: ${f.scalaType.symbol}").mkString(", ")})"
+    }.getOrElse("")
+
+
+
   }
 
 }

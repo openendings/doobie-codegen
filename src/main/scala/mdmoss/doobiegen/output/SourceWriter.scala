@@ -23,14 +23,4 @@ object SourceWriter {
       new FileWriter(destFile.toAbsolutePath.toString) { w => w.write(f.contents); w.close() }
     }
   }
-
-  def main(args: Array[String]) {
-
-    val files = Seq(
-      File("a.b.c", "Test.scala", "Wah", true),
-      File("b.c.a", "Test2.scala", "Woh", false)
-    )
-
-    write(Paths.get(""), files)
-  }
 }
