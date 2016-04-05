@@ -2,6 +2,7 @@ package mdmoss.doobiegen
 
 import mdmoss.doobiegen.output.File
 import mdmoss.doobiegen.sql.Table
+import Analysis._
 
 class Generator(analysis: Analysis) {
 
@@ -26,6 +27,8 @@ class Generator(analysis: Analysis) {
             |  ${genPkNewType(t)}
             |
             |  ${genRowType(t)}
+            |
+            |  ${genInsert(t)}
             |}
          """.stripMargin
 
@@ -50,6 +53,19 @@ class Generator(analysis: Analysis) {
   def genRowType(table: Table): String = {
     val row = a.rowNewType(table)
     s"case class ${row._2.symbol}(${row._1.map(f => s"${f.scalaName}: ${f.scalaType.symbol}").mkString(", ")})"
+  }
+
+  def genInsert(table: Table): String = {
+    val in = a.insert(table)
+    val scope = in.fn.privatePkg.map(p => s"private [$p] ").getOrElse("")
+
+    s"""
+       |${scope}def insert(${in.fn.params.map(f => s"${f.name}: ${f.`type`.symbol}").mkString(", ")}): ${in.fn.returnType} = {
+       |  ${in.fn.body}
+       |}
+     """.stripMargin
+
+
   }
 
 }

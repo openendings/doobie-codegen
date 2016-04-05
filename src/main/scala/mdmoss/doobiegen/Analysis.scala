@@ -1,9 +1,12 @@
 package mdmoss.doobiegen
 
+import mdmoss.doobiegen.Analysis.CodeBits
 import mdmoss.doobiegen.Runner.Target
 import mdmoss.doobiegen.sql.{Column, Table}
 
 case class RowRepField(source: List[Column], scalaName: String, scalaType: ScalaType)
+
+case class Insert(fn: FunctionDef) extends CodeBits { def parts: Seq[CodePart] = Seq(fn) }
 
 object Analysis {
 
@@ -40,7 +43,6 @@ object Analysis {
     def sqlColumns: String = l.flatMap(_.source).map(_.sqlName).mkString(", ")
   }
 
-  case class Insert(fn: FunctionDef) extends CodeBits { def parts: Seq[CodePart] = Seq(fn) }
 
   /** Returns an arbitrary using the given constructor and the arb instance for each type in order */
   def merge(constructor: String, scalaTypes: List[ScalaType]): String = {
