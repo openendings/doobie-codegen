@@ -3,8 +3,9 @@ package mdmoss.doobiegen
 import mdmoss.doobiegen.Runner.Target
 import mdmoss.doobiegen.sql.{Column, Table}
 
+case class RowRepField(source: List[Column], scalaName: String, scalaType: ScalaType)
+
 object Analysis {
-  case class RowRepField(source: List[Column], scalaName: String, scalaType: ScalaType)
 
   /* Helpers */
   implicit class CamelCaseStrings(s: String) {

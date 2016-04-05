@@ -13,6 +13,22 @@ class Generator(analysis: Analysis) {
 
     val tableFiles = db.tables.map { t =>
 
+      val contents =
+        s"""package ${a.targetPackage(t)}
+            |
+            |/* Todo handle imports */
+            |import doobie.imports._
+            |import java.sql.Timestamp
+            |
+            |object ${a.targetObject(t)} {
+            |
+            |  ${a.pkNewType(t)}
+            |
+            |
+            |}
+         """.stripMargin
+
+
       File(
         a.targetPackage(t),
         a.targetObject(t) + ".scala",
