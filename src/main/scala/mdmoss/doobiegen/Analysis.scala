@@ -65,7 +65,9 @@ class Analysis(val model: DbModel, val target: Target) {
     case Nil      => None
     case c :: Nil =>
       val rep = c.scalaRep.copy(scalaName = "value")
-      Some((List(rep), ScalaType(c.sqlName.camelCase.capitalize, c.scalaType.arb)))
+      val symbol = c.sqlName.camelCase.capitalize
+      val fullyQualified = s"${targetPackage(table)}.${targetObject(table)}.$symbol"
+      Some((List(rep), ScalaType(symbol, s"$fullyQualified(${c.scalaType.arb})")))
     case cs       =>
       val name = "PrimaryKey"
       val arb = merge(name, cs.map(_.scalaType))
