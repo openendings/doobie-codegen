@@ -30,6 +30,8 @@ class Generator(analysis: Analysis) {
             |  ${genRowType(t)}
             |
             |  ${genInsert(t)}
+            |
+            |  ${genCreate(t)}
             |}
          """.stripMargin
 
@@ -93,6 +95,21 @@ class Generator(analysis: Analysis) {
        |  ${in.fn.body}
        |}
      """.stripMargin
+  }
+
+  def genCreate(table: Table): String = {
+    val in = a.insert(table)
+    val params = in.fn.params.map(f => s"${f.name}: ${f.`type`.symbol}").mkString(", ")
+    val rowType = a.rowNewType(table)
+
+    s"""def create($params): ConnectionIO[${a.rowNewType(table)._2.symbol}] = {
+       |  insert(${in.fn.params.map(f => f.name).mkString(", ")})
+       |    .withUniqueGeneratedKeys[${rowType._2.symbol}](${rowType._1.flatMap(_.source.map(s => "\"" + s.sqlName + "\"")).mkString(", ")})
+       |}
+       |
+     """.stripMargin
+
+
   }
 
   // Todo generalise to more tests
