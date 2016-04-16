@@ -14,6 +14,5 @@ case class PKNewtype(columns: Seq[sql.Column], scalaType: ScalaType) extends Pla
 
 case class RowRep(table: TableRef, fields: Seq[RowRepField], scalaType: ScalaType) extends PlanPart
 
-case class Create(insert: Insert, rowRep: RowRep) extends PlanPart
 
 case class ScalaType(symbol: String, arb: String)

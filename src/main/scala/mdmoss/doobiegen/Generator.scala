@@ -32,6 +32,7 @@ class Generator(analysis: Analysis) {
             |  ${genInsert(t)}
             |
             |  ${genCreate(t)}
+            |
             |}
          """.stripMargin
 
@@ -89,28 +90,40 @@ class Generator(analysis: Analysis) {
 
   def genInsert(table: Table): String = {
     val in = a.insert(table)
-    val scope = in.fn.privatePkg.map(p => s"private [$p] ").getOrElse("")
-    s"""
-       |${scope}def insert(${in.fn.params.map(f => s"${f.name}: ${f.`type`.symbol}").mkString(", ")}): ${in.fn.returnType} = {
-       |  ${in.fn.body}
-       |}
-     """.stripMargin
+    ppFunctionDef(in.fn)
   }
 
   def genCreate(table: Table): String = {
-    val in = a.insert(table)
-    val params = in.fn.params.map(f => s"${f.name}: ${f.`type`.symbol}").mkString(", ")
-    val rowType = a.rowNewType(table)
+    val create = a.create(table)
+    ppFunctionDef(create.fn)
+  }
 
-    s"""def create($params): ConnectionIO[${a.rowNewType(table)._2.symbol}] = {
-       |  insert(${in.fn.params.map(f => f.name).mkString(", ")})
-       |    .withUniqueGeneratedKeys[${rowType._2.symbol}](${rowType._1.flatMap(_.source.map(s => "\"" + s.sqlName + "\"")).mkString(", ")})
+  def ppFunctionDef(fn: FunctionDef): String = {
+    val scope = fn.privatePkg.map { p => s"private[$p]" }.getOrElse("")
+    val params = fn.params.map(f => s"${f.name}: ${f.`type`.symbol}").mkString(", ")
+
+    s"""$scope def ${fn.name}($params): ${fn.returnType} = {
+       |${fn.body}
        |}
-       |
      """.stripMargin
 
-
   }
+
+/*  def genGet(table: Table): String = {
+    val get = a.get(table)
+    val innserParams = in.fn.params.map(f => s"${f.name}: ${f.`type`.symbol}").mkString(", ")
+
+in
+    a.pkNewType(table).map(pk =>
+      val rowType = a.rowNewType(table)
+      s"""def getInner($para)
+         |
+         |
+         |
+       """.stripMargin
+    )
+
+  }*/
 
   // Todo generalise to more tests
   def genInsertTest(table: Table): String = {

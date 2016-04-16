@@ -6,7 +6,11 @@ import mdmoss.doobiegen.sql.{Column, Table}
 
 case class RowRepField(source: List[Column], scalaName: String, scalaType: ScalaType)
 
-case class Insert(fn: FunctionDef) extends CodeBits { def parts: Seq[CodePart] = Seq(fn) }
+case class Insert(fn: FunctionDef)
+
+case class Create(fn: FunctionDef)
+
+case class Get(inner: FunctionDef, outer: FunctionDef)
 
 object Analysis {
 
@@ -99,5 +103,35 @@ class Analysis(val model: DbModel, val target: Target) {
     Insert(fn)
   }
 
+  def create(table: Table): Create = {
+    val in = insert(table)
+    val params = in.fn.params.map(f => s"${f.name}: ${f.`type`.symbol}").mkString(", ")
+    val rowType = rowNewType(table)
 
+    val body =
+      s"""
+        |  insert(${in.fn.params.map(f => f.name).mkString(", ")})
+        |    .withUniqueGeneratedKeys[${rowType._2.symbol}](${rowType._1.flatMap(_.source.map(s => "\"" + s.sqlName + "\"")).mkString(", ")})
+     """.stripMargin
+
+    val fn = FunctionDef(Some(privateScope(table)), "create", in.fn.params, s"ConnectionIO[${rowType._2.symbol}]", body)
+    Create(fn)
+  }
+
+  def get(table: Table): Option[Get] = pkNewType(table).map { pk =>
+
+    val rowType = rowNewType(table)
+
+    val innerBody =
+      s"""sql\"\"\"
+         |  SELECT ${rowType._1.flatMap(_.source).mkString(", ")}
+         |  FROM ${table.ref.fullName}
+         |  WHERE ${pk._1.flatMap(_.source).mkString(", ")} = id
+         |\"\"\".query[${pk._2.symbol}]
+       """.stripMargin
+
+    val inner = FunctionDef(Some(privateScope(table)), "getInner", Seq(FunctionParam("id", pk._2)), rowType._2.symbol, innerBody)
+
+    Get(inner, inner)
+  }
 }
