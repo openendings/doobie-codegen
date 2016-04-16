@@ -64,7 +64,9 @@ class Generator(analysis: Analysis) {
             |
             |  val transactor = DriverManagerTransactor[Task]("${tr.driver}", "${tr.url}", "${tr.username}", "${tr.password}")
             |
-            |  ${genInsertTest(t)}
+            |  ${checkTest(t, a.insert(t).fn)}
+            |
+            |  ${a.get(t).map { g => checkTest(t, g.inner)}.getOrElse("")}
             |}
          """.stripMargin
 
@@ -119,13 +121,9 @@ class Generator(analysis: Analysis) {
     }.getOrElse("")
   }
 
-  // Todo generalise to more tests
-  def genInsertTest(table: Table): String = {
-    val in = a.insert(table)
+  def checkTest(table: Table, fn: FunctionDef): String = {
     val obj = a.targetObject(table)
-    s"""
-       |check($obj.insert(${in.fn.params.map(_.`type`.arb).mkString(", ")}))
-     """.stripMargin
+    s"""check($obj.${fn.name}(${fn.params.map(_.`type`.arb).mkString(", ")}))"""
   }
 
 }
