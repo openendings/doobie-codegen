@@ -29,11 +29,19 @@ class Generator(analysis: Analysis) {
             |
             |  ${genRowType(t)}
             |
-            |  ${genInsert(t)}
+            |  ${ppFunctionDef(a.insert(t).fn)}
             |
-            |  ${genCreate(t)}
+            |  ${ppFunctionDef(a.create(t).fn)}
             |
-            |  ${genGet(t)}
+            |  ${a.get(t).map { g =>
+                  ppFunctionDef(g.inner) + "\n" +
+                  ppFunctionDef(g.outer)
+                }.getOrElse("")}
+            |
+            |  ${a.find(t).map { f =>
+                  ppFunctionDef(f.inner) + "\n" +
+                  ppFunctionDef(f.outer)
+               }.getOrElse("")}
             |
             |}
          """.stripMargin
@@ -67,6 +75,8 @@ class Generator(analysis: Analysis) {
             |  ${checkTest(t, a.insert(t).fn)}
             |
             |  ${a.get(t).map { g => checkTest(t, g.inner)}.getOrElse("")}
+            |
+            |  ${a.find(t).map { f => checkTest(t, f.inner)}.getOrElse("")}
             |}
          """.stripMargin
 

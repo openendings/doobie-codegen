@@ -12,6 +12,8 @@ case class Create(fn: FunctionDef)
 
 case class Get(inner: FunctionDef, outer: FunctionDef)
 
+case class Find(inner: FunctionDef, outer: FunctionDef)
+
 object Analysis {
 
   /* Helpers */
@@ -126,7 +128,7 @@ class Analysis(val model: DbModel, val target: Target) {
       s"""sql\"\"\"
          |  SELECT ${rowType._1.sqlColumns}
          |  FROM ${table.ref.fullName}
-         |  WHERE ${pk._1.sqlColumns} = id
+         |  WHERE ${pk._1.sqlColumns} = $$id
          |\"\"\".query[${rowType._2.symbol}]
        """.stripMargin
 
@@ -140,5 +142,29 @@ class Analysis(val model: DbModel, val target: Target) {
     val outer = FunctionDef(None, "get", inner.params, s"ConnectionIO[${rowType._2.symbol}]", outerBody)
 
     Get(inner, outer)
+  }
+
+  def find(table: Table): Option[Find] = pkNewType(table).map { pk =>
+
+    val rowType = rowNewType(table)
+
+    val innerBody =
+      s"""sql\"\"\"
+          |  SELECT ${rowType._1.sqlColumns}
+          |  FROM ${table.ref.fullName}
+          |  WHERE ${pk._1.sqlColumns} = $$id
+          |\"\"\".query[${rowType._2.symbol}]
+       """.stripMargin
+
+    val params = pk._1 match {
+      case p :: Nil => Seq(FunctionParam("id", p.scalaType))
+      case ps => ps.zipWithIndex.map { case (p, i) => FunctionParam(s"id$i", p.scalaType)}
+    }
+    val inner = FunctionDef(Some(privateScope(table)), "findInner", params, s"Query0[${rowType._2.symbol}]", innerBody)
+
+    val outerBody = s"""findInner(${params.map(_.name).mkString(", ")}).option"""
+    val outer = FunctionDef(None, "find", params, s"ConnectionIO[Option[${rowType._2.symbol}]]", outerBody)
+
+    Find(inner, outer)
   }
 }
