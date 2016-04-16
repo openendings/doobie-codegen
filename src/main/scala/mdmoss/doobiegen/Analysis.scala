@@ -124,14 +124,21 @@ class Analysis(val model: DbModel, val target: Target) {
 
     val innerBody =
       s"""sql\"\"\"
-         |  SELECT ${rowType._1.flatMap(_.source).mkString(", ")}
+         |  SELECT ${rowType._1.sqlColumns}
          |  FROM ${table.ref.fullName}
-         |  WHERE ${pk._1.flatMap(_.source).mkString(", ")} = id
-         |\"\"\".query[${pk._2.symbol}]
+         |  WHERE ${pk._1.sqlColumns} = id
+         |\"\"\".query[${rowType._2.symbol}]
        """.stripMargin
 
-    val inner = FunctionDef(Some(privateScope(table)), "getInner", Seq(FunctionParam("id", pk._2)), rowType._2.symbol, innerBody)
+    val inner = FunctionDef(Some(privateScope(table)), "getInner", Seq(FunctionParam("id", pk._2)), s"Query0[${rowType._2.symbol}]", innerBody)
 
-    Get(inner, inner)
+    val outerBody =
+      s"""
+         |getInner(${inner.params.map(_.name).mkString(",")}).unique
+       """.stripMargin
+
+    val outer = FunctionDef(None, "get", inner.params, s"ConnectionIO[${rowType._2.symbol}]", outerBody)
+
+    Get(inner, outer)
   }
 }

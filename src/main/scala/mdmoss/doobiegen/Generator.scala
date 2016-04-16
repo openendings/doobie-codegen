@@ -33,6 +33,8 @@ class Generator(analysis: Analysis) {
             |
             |  ${genCreate(t)}
             |
+            |  ${genGet(t)}
+            |
             |}
          """.stripMargin
 
@@ -109,21 +111,13 @@ class Generator(analysis: Analysis) {
 
   }
 
-/*  def genGet(table: Table): String = {
-    val get = a.get(table)
-    val innserParams = in.fn.params.map(f => s"${f.name}: ${f.`type`.symbol}").mkString(", ")
-
-in
-    a.pkNewType(table).map(pk =>
-      val rowType = a.rowNewType(table)
-      s"""def getInner($para)
-         |
-         |
-         |
+  def genGet(table: Table): String = {
+    a.get(table).map { get =>
+      s"""${ppFunctionDef(get.inner)}
+         |${ppFunctionDef(get.outer)}
        """.stripMargin
-    )
-
-  }*/
+    }.getOrElse("")
+  }
 
   // Todo generalise to more tests
   def genInsertTest(table: Table): String = {
