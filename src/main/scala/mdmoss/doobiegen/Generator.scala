@@ -49,6 +49,9 @@ class Generator(analysis: Analysis) {
             |  ${ppFunctionDef(a.all(t).inner)}
             |  ${ppFunctionDef(a.all(t).outer)}
             |
+            |  ${ppFunctionDef(a.count(t).inner)}
+            |  ${ppFunctionDef(a.count(t).outer)}
+            |
             |}
          """.stripMargin
 
@@ -87,6 +90,8 @@ class Generator(analysis: Analysis) {
             |  ${checkTest(t, a.allUnbounded(t).inner)}
             |
             |  ${checkTest(t, a.all(t).inner)}
+            |
+            |  ${checkTest(t, a.count(t).inner)}
             |}
          """.stripMargin
 

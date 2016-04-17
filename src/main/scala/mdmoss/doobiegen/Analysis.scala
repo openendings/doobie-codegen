@@ -18,6 +18,8 @@ case class All(inner: FunctionDef, outer: FunctionDef)
 
 case class AllUnbounded(inner: FunctionDef, outer: FunctionDef)
 
+case class Count(inner: FunctionDef, outer: FunctionDef)
+
 object Analysis {
 
   /* Helpers */
@@ -213,5 +215,21 @@ class Analysis(val model: DbModel, val target: Target) {
     val outer = FunctionDef(None, "all", offsetLimit, s"ConnectionIO[List[${rowType._2.symbol}]]", outerBody)
 
     All(inner, outer)
+  }
+
+  def count(table: Table): Count = {
+    val innerBody =
+      s"""sql\"\"\"
+          |  SELECT COUNT(*)
+          |  FROM ${table.ref.fullName}
+          |\"\"\".query[Long]
+       """.stripMargin
+
+    val inner = FunctionDef(Some(privateScope(table)), "countInner", Seq(), "Query0[Long]", innerBody)
+
+    val outerBody = s"countInner().unique"
+    val outer = FunctionDef(None, "count", Seq(), "ConnectionIO[Long]", outerBody)
+
+    Count(inner, outer)
   }
 }
