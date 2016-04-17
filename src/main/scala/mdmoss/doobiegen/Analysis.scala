@@ -98,6 +98,11 @@ class Analysis(val model: DbModel, val target: Target) {
     (parts, ScalaType("Row", merge(targetObject(table) + "Row", parts.map(_.scalaType))))
   }
 
+  def rowShape(table: Table): (List[RowRepField], ScalaType) = {
+    val parts = table.nonPrimaryKeyColumns.map(_.scalaRep)
+    (parts, ScalaType("Shape", merge(targetObject(table) + "Shape", parts.map(_.scalaType))))
+  }
+
   def insert(table: Table): Insert = {
     val params = rowNewType(table)._1.map(t => FunctionParam(t.scalaName, t.scalaType))
     val body =

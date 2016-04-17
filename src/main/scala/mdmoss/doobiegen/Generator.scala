@@ -29,6 +29,8 @@ class Generator(analysis: Analysis) {
             |
             |  ${genRowType(t)}
             |
+            |  ${genShapeType(t)}
+            |
             |  ${ppFunctionDef(a.insert(t).fn)}
             |
             |  ${ppFunctionDef(a.create(t).fn)}
@@ -115,6 +117,11 @@ class Generator(analysis: Analysis) {
   def genRowType(table: Table): String = {
     val row = a.rowNewType(table)
     s"case class ${row._2.symbol}(${row._1.map(f => s"${f.scalaName}: ${f.scalaType.symbol}").mkString(", ")})"
+  }
+
+  def genShapeType(table: Table): String = {
+    val shape = a.rowShape(table)
+    s"case class ${shape._2.symbol}(${shape._1.map(f => s"${f.scalaName}: ${f.scalaType.symbol}").mkString(", ")})"
   }
 
   def genInsert(table: Table): String = {
