@@ -43,6 +43,9 @@ class Generator(analysis: Analysis) {
                   ppFunctionDef(f.outer)
                }.getOrElse("")}
             |
+            |  ${ppFunctionDef(a.allUnbounded(t).inner)}
+            |  ${ppFunctionDef(a.allUnbounded(t).outer)}
+            |
             |}
          """.stripMargin
 
@@ -77,6 +80,8 @@ class Generator(analysis: Analysis) {
             |  ${a.get(t).map { g => checkTest(t, g.inner)}.getOrElse("")}
             |
             |  ${a.find(t).map { f => checkTest(t, f.inner)}.getOrElse("")}
+            |
+            |  ${checkTest(t, a.allUnbounded(t).inner)}
             |}
          """.stripMargin
 
