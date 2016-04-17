@@ -98,7 +98,8 @@ class Analysis(val model: DbModel, val target: Target) {
     (parts, ScalaType("Row", merge(targetObject(table) + "Row", parts.map(_.scalaType))))
   }
 
-  def rowShape(table: Table): (List[RowRepField], ScalaType) = {
+  /* We only generate a Shape if there's a primary key, meaning we can't use Row */
+  def rowShape(table: Table): Option[(List[RowRepField], ScalaType)] = pkNewType(table).map { pk =>
     val parts = table.nonPrimaryKeyColumns.map(_.scalaRep)
     (parts, ScalaType("Shape", merge(targetObject(table) + "Shape", parts.map(_.scalaType))))
   }

@@ -120,8 +120,10 @@ class Generator(analysis: Analysis) {
   }
 
   def genShapeType(table: Table): String = {
-    val shape = a.rowShape(table)
-    s"case class ${shape._2.symbol}(${shape._1.map(f => s"${f.scalaName}: ${f.scalaType.symbol}").mkString(", ")})"
+    a.rowShape(table).map { shape =>
+      s"case class ${shape._2.symbol}(${shape._1.map(f => s"${f.scalaName}: ${f.scalaType.symbol}").mkString(", ")})"
+    }.getOrElse("")
+
   }
 
   def genInsert(table: Table): String = {
