@@ -191,4 +191,27 @@ class Analysis(val model: DbModel, val target: Target) {
 
     AllUnbounded(inner, outer)
   }
+
+  def all(table: Table): All = {
+    val rowType = rowNewType(table)
+    val offsetLimit = Seq(FunctionParam("offset", ScalaType("Long", "0L")), FunctionParam("limit", ScalaType("Long", "0L")))
+
+    val innerBody =
+      s"""sql\"\"\"
+          |  SELECT ${rowType._1.sqlColumns}
+          |  FROM ${table.ref.fullName}
+          |  OFFSET $$offset
+          |  LIMIT $$limit
+          |\"\"\".query[${rowType._2.symbol}]
+       """.stripMargin
+
+    val inner = FunctionDef(Some(privateScope(table)), "allInner", offsetLimit, s"Query0[${rowType._2.symbol}]", innerBody)
+
+    val outerBody =
+      s"""allInner(offset, limit).list"""
+
+    val outer = FunctionDef(None, "all", offsetLimit, s"ConnectionIO[List[${rowType._2.symbol}]]", outerBody)
+
+    All(inner, outer)
+  }
 }
