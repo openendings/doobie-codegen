@@ -18,6 +18,8 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
     | CreateExtension
     | Begin
     | Commit
+    | With
+    | CreateView
   )
 
   def CreateTable: Rule1[sql.Statement] = rule {
@@ -112,5 +114,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
 
   def Begin = rule { ignoreCase("begin") ~ ";" ~ push(sql.Ignored) }
   def Commit = rule { ignoreCase("commit") ~ ";" ~ push(sql.Ignored) }
+  def With = rule { ignoreCase("with") ~ zeroOrMore(noneOf(";")) ~ ";" ~ push(sql.Ignored) }
+  def CreateView = rule { ignoreCase("create view") ~ zeroOrMore(noneOf(";")) ~ ";" ~ push(sql.Ignored) }
 }
 
