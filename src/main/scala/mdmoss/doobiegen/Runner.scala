@@ -15,7 +15,9 @@ object Runner {
   case class Target(
     schemaDir: String,
     testDb: TestDatabase,
-    `package`: String) {
+    src: String,
+    `package`: String
+  ) {
 
     def enclosingPackage = `package`.split('.').reverse.headOption
   }
@@ -28,6 +30,7 @@ object Runner {
       "test",
       "test"
     ),
+    src = "out/src",
     `package` = "mdmoss.doobiegen.db"
   )
 
@@ -57,6 +60,7 @@ object Runner {
         case r@Success(_) => println(r)
         case r@Failure(f) => f match {
           case e@ParseError(_, _, _) => println(s.formatError(e))
+            throw f
         }
       }
     }
@@ -72,7 +76,7 @@ object Runner {
     /*    model.tables.foreach(println)
     println(seperator)*/
 
-    val analysis = new Analysis(model, Default)
+    val analysis = new Analysis(model, target)
 
     model.tables.foreach { t =>
       /*      println(seperator)
@@ -91,7 +95,7 @@ object Runner {
 
     val files = generator.gen
 
-    SourceWriter.write(Paths.get("out/src"), files)
+    SourceWriter.write(Paths.get(target.src), files)
 
 
   }

@@ -1,4 +1,7 @@
 val commonSettings = Seq(
+  name := "doobie-codegen",
+  organization := "net.mdmoss",
+  version := "0.1-SNAPSHOT",
   scalaVersion := "2.11.7",
   libraryDependencies ++= Seq(
     "org.tpolecat"  %% "doobie-core"               % "0.2.3",

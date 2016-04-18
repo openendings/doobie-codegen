@@ -64,7 +64,7 @@ class Analysis(val model: DbModel, val target: Target) {
     case Nil      => None
     case c :: Nil =>
       val rep = c.scalaRep.copy(scalaName = "value")
-      val symbol = c.sqlName.camelCase.capitalize
+      val symbol = targetObject(table) + c.sqlName.camelCase.capitalize
       val fullyQualified = s"${targetPackage(table)}.${targetObject(table)}.$symbol"
       Some((List(rep), ScalaType(symbol, s"$fullyQualified(${c.scalaType.arb})")))
     case cs       => None
@@ -80,7 +80,7 @@ class Analysis(val model: DbModel, val target: Target) {
     }
 
     val parts = pkPart.toList ++ table.nonPrimaryKeyColumns.map(_.scalaRep)
-    (parts, ScalaType("Row", merge(targetObject(table) + "Row", parts.map(_.scalaType))))
+    (parts, ScalaType(targetObject(table) + "Row", merge(targetObject(table) + "Row", parts.map(_.scalaType))))
   }
 
   /* We only generate a Shape if there's a primary key, meaning we can't use Row */
@@ -113,7 +113,7 @@ class Analysis(val model: DbModel, val target: Target) {
         |    .withUniqueGeneratedKeys[${rowType._2.symbol}](${rowType._1.flatMap(_.source.map(s => "\"" + s.sqlName + "\"")).mkString(", ")})
      """.stripMargin
 
-    val fn = FunctionDef(Some(privateScope(table)), "create", in.fn.params, s"ConnectionIO[${rowType._2.symbol}]", body)
+    val fn = FunctionDef(None, "create", in.fn.params, s"ConnectionIO[${rowType._2.symbol}]", body)
     Create(fn)
   }
 
