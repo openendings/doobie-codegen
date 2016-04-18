@@ -251,7 +251,7 @@ class Analysis(val model: DbModel, val target: Target) {
               |\"\"\".query[${rowType._2.symbol}]
        """.stripMargin
 
-        val pkParams = pluralise(table.primaryKeyColumns.map(p => FunctionParam(p.scalaName, p.scalaType)))
+        val pkParams = pluralise(List(FunctionParam(table.primaryKeyColumns.head.scalaName, pk._2)))
 
         val pkMultigetInner = FunctionDef(Some(privateScope(table)), "multigetInner", pkParams, s"Query0[${rowType._2.symbol}]", pkMultigetInnerBody)
 
