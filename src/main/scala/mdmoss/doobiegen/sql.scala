@@ -45,4 +45,5 @@ object sql {
   case object Null       extends ColumnProperty
   case object NotNull    extends ColumnProperty
   case object PrimaryKey extends ColumnProperty
+  case object Default    extends ColumnProperty
 }

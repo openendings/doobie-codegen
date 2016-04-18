@@ -9,14 +9,14 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
   def Statement = rule { CreateTable | CreateSchema }
 
   def CreateTable: Rule1[sql.Statement] = rule {
-    ("CREATE TABLE " ~ TableRef ~ '(' ~ OptionalWhitespace ~ zeroOrMore(TableProperty) ~ ");") ~>
+    ("CREATE TABLE " ~ optional("IF NOT EXISTS ") ~ TableRef ~ '(' ~ OptionalWhitespace ~ zeroOrMore(TableProperty) ~ ");") ~>
        { (ref, columns) => sql.CreateTable(ref, columns) }
   }
 
   def TableProperty: Rule1[sql.TableProperty] = rule { Column | CompositePrimaryKey }
 
   def Column: Rule1[sql.Column] = rule {
-    (ValidIdentifier ~ Type ~ zeroOrMore(ColumnProperty) ~ optional(',') ~ OptionalWhitespace) ~>
+    (ValidIdentifier ~ Type ~ zeroOrMore(ColumnProperty ~ optional(' ')) ~ optional(',') ~ OptionalWhitespace) ~>
       { (id, typ, props) => sql.Column(id, typ, props) }
   }
 
@@ -41,6 +41,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
       ignoreCase("null")     ~ push(sql.Null)
     | ignoreCase("not null") ~ push(sql.NotNull)
     | ignoreCase("primary key") ~ push(sql.PrimaryKey)
+    | ignoreCase("default") ~ " " ~ oneOrMore(CharPredicate.Alpha ++ '_') ~ push(sql.Default)
   )
 
   /* http://www.postgresql.org/docs/9.4/static/sql-syntax-lexical.html */
