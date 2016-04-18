@@ -96,12 +96,18 @@ class Analysis(val model: DbModel, val target: Target) {
     (parts, ScalaType("Shape", merge(targetObject(table) + "Shape", parts.map(_.scalaType))))
   }
 
+  /* We somehow get information about row sources / values from different places. @Todo unify */
   def insert(table: Table): Insert = {
     val params = rowNewType(table)._1.filterNot(r => SkipInsert.contains(r.source.head.sqlType)).map(t => FunctionParam(t.scalaName, t.scalaType))
+    val values = rowNewType(table)._1.map(r => SkipInsert.contains(r.source.head.sqlType) match {
+      case true => "default"
+      case false => s"$${${r.scalaName}}"
+    }).mkString(", ")
+
     val body =
       s"""sql\"\"\"
           |  INSERT INTO ${table.ref.fullName} (${rowNewType(table)._1.sqlColumns})
-          |  VALUES (${params.map(_.name).map(s => s"$${$s}").mkString(", ")})
+          |  VALUES ($values)
           |\"\"\".update
       """.stripMargin.trim
 
