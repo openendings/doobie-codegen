@@ -19,6 +19,8 @@ case class AllUnbounded(inner: FunctionDef, outer: FunctionDef)
 
 case class Count(inner: FunctionDef, outer: FunctionDef)
 
+case class MultiGet(inner: FunctionDef, outer: FunctionDef)
+
 object Analysis {
 
   /* Helpers */
@@ -221,6 +223,92 @@ class Analysis(val model: DbModel, val target: Target) {
 
     Count(inner, outer)
   }
+
+  /* This should be split into pk and non-pk multigets - @todo */
+  def multigets(table: Table): Seq[MultiGet] = {
+    val rowType = rowNewType(table)
+
+    val pkMultiget = pkNewType(table) match {
+
+      case Some(pk) =>
+        /* This is a bit of a hack and will need to change eventually */
+        val pkMultigetInnerBodyCondition = table.primaryKeyColumns.map { c =>
+          c.reference match {
+            case Some(r) => s"${c.sqlName} = ANY($${{${c.scalaName}}.map(_.value).toArray})"
+            case None => s"${c.sqlName} = ANY($${{${c.scalaName}}.toArray})"
+          }
+        }.mkString(" AND ")
+
+        val pkMultigetInnerBody =
+          s"""sql\"\"\"
+              |  SELECT ${rowType._1.sqlColumns}
+              |  FROM ${table.ref.fullName}
+              |  WHERE $pkMultigetInnerBodyCondition
+              |\"\"\".query[${rowType._2.symbol}]
+       """.stripMargin
+
+        val pkParams = pluralise(table.primaryKeyColumns.map(p => FunctionParam(p.scalaName, p.scalaType)))
+
+        val pkMultigetInner = FunctionDef(Some(privateScope(table)), "multigetInner", pkParams, s"Query0[${rowType._2.symbol}]", pkMultigetInnerBody)
+
+        val pkMultigetOuterBody =
+          s"""multigetInner(${pkParams.map(_.name).head}).list"""
+
+        val pkMultigetOuter = FunctionDef(None, "multiget", pkParams, s"ConnectionIO[List[${rowType._2.symbol}]]", pkMultigetOuterBody)
+
+        Seq(MultiGet(pkMultigetInner, pkMultigetOuter))
+
+      case None => Seq()
+    }
+
+    val fkMultigets = table.columns.flatMap {
+      case c @ Column(colName, colType, copProps) if c.reference.isDefined && !c.isNullible =>
+
+        val params = pluralise(List(FunctionParam(c.scalaName, c.scalaType)))
+
+        val condition = c.reference match {
+          case Some(ref) => s"${c.sqlName} = ANY($${{${c.scalaName}}.map(_.value).toArray})"
+          case None => s"${c.sqlName} = ANY($${{${c.scalaName}}.toArray})"
+        }
+
+        val innerBody =
+          s"""sql\"\"\"
+              |  SELECT ${rowType._1.sqlColumns}
+              |  FROM ${table.ref.fullName}
+              |  WHERE $condition
+              |\"\"\".query[${rowType._2.symbol}]
+       """.stripMargin
+
+        val inner = FunctionDef(Some(privateScope(table)), s"multigetBy${c.scalaName.capitalize}Inner", params, s"Query0[${rowType._2.symbol}]", innerBody)
+
+        val outerBody = s"""${inner.name}(${params.head.name}).list"""
+
+        val outer = FunctionDef(None, s"multigetBy${c.scalaName.capitalize}", params, s"ConnectionIO[List[${rowType._2.symbol}]]", outerBody)
+
+        Seq(MultiGet(inner, outer))
+
+      case _ => Seq()
+    }
+
+    pkMultiget ++ fkMultigets
+  }
+
+  /**
+    * Turn a singular param into a multiple param.
+    *
+    * eg, (id: Long, name: String) => (params: Seq(Long, String))
+    * eg. (id: Long) => (id: Seq(Long))
+    */
+  def pluralise(params: List[FunctionParam]): List[FunctionParam] = params match {
+    case p :: Nil => List(p.copy(`type` = app(p.`type`, "Seq")))
+    case ps => ps
+  }
+
+  /**
+    * Wraps the given type in some applicative thing.
+    */
+  def app(t: ScalaType, app: String): ScalaType = ScalaType(s"$app[${t.symbol}]", s"$app(${t.arb})")
+
 
   implicit class ColumnScalaRep(column: sql.Column) {
 

@@ -2,8 +2,8 @@ val commonSettings = Seq(
   scalaVersion := "2.11.7",
   libraryDependencies ++= Seq(
     "org.tpolecat"  %% "doobie-core"               % "0.2.3",
+    "org.tpolecat"  %% "doobie-contrib-postgresql" % "0.2.3",
     "org.tpolecat"  %% "doobie-contrib-specs2"     % "0.2.3" % "test",
-    "org.tpolecat"  %% "doobie-contrib-postgresql" % "0.2.3" % "test",
     "org.specs2"    %% "specs2-core"               % "3.6.3" % "test",
     "org.parboiled" %% "parboiled"                 % "2.1.2"
   ),

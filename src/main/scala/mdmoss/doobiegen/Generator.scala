@@ -22,6 +22,7 @@ class Generator(analysis: Analysis) {
             |/* Todo handle imports better */
             |import doobie.imports._
             |import java.sql.Timestamp
+            |import doobie.contrib.postgresql.pgtypes._
             |
             |object ${a.targetObject(t)} {
             |
@@ -53,6 +54,8 @@ class Generator(analysis: Analysis) {
             |
             |  ${ppFunctionDef(a.count(t).inner)}
             |  ${ppFunctionDef(a.count(t).outer)}
+            |
+            |  ${a.multigets(t).map { m => ppFunctionDef(m.inner) + "\n" + ppFunctionDef(m.outer) }.mkString("\n") }
             |
             |}
          """.stripMargin
@@ -94,6 +97,8 @@ class Generator(analysis: Analysis) {
             |  ${checkTest(t, a.all(t).inner)}
             |
             |  ${checkTest(t, a.count(t).inner)}
+            |
+            |  ${a.multigets(t).map { m => checkTest(t, m.inner) }.mkString("\n") }
             |}
          """.stripMargin
 
