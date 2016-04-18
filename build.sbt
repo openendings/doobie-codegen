@@ -1,6 +1,6 @@
 val commonSettings = Seq(
-  name := "doobie-codegen",
-  organization := "net.mdmoss",
+  name := "doobiegen",
+  organization := "mdmoss",
   version := "0.1-SNAPSHOT",
   scalaVersion := "2.11.7",
   libraryDependencies ++= Seq(
