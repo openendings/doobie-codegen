@@ -1,5 +1,6 @@
 package mdmoss.doobiegen
 
+import mdmoss.doobiegen.sql.{References, TableRef}
 import org.parboiled2._
 
 class SqlStatementParser(val input: ParserInput) extends Parser {
@@ -28,6 +29,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
   /* Note: all of these must be lowercase, and this isn't enforced by parboiled :/ */
   def Type: Rule1[sql.Type] = rule {(
       ignoreCase("bigint") ~                       push(sql.BigInt)
+        | ignoreCase("bigserial") ~                push(sql.BigSerial)
         | ignoreCase("boolean") ~                  push(sql.Boolean)
         | ignoreCase("double precision") ~         push(sql.DoublePrecision)
         | ignoreCase("integer") ~                  push(sql.Integer)
@@ -42,6 +44,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
     | ignoreCase("not null") ~ push(sql.NotNull)
     | ignoreCase("primary key") ~ push(sql.PrimaryKey)
     | ignoreCase("default") ~ " " ~ oneOrMore(CharPredicate.Alpha ++ '_') ~ push(sql.Default)
+    | ignoreCase("references") ~ " " ~ TableRef ~ "(" ~ ValidIdentifier ~ ")" ~> ((t: TableRef, column: String) => References(t, column))
   )
 
   /* http://www.postgresql.org/docs/9.4/static/sql-syntax-lexical.html */

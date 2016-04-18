@@ -46,4 +46,5 @@ object sql {
   case object NotNull    extends ColumnProperty
   case object PrimaryKey extends ColumnProperty
   case object Default    extends ColumnProperty
+  case class References(table: TableRef, column: String) extends ColumnProperty
 }
