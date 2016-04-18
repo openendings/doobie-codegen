@@ -44,9 +44,10 @@ object sql {
   }
 
   sealed trait ColumnProperty
-  case object Null       extends ColumnProperty
-  case object NotNull    extends ColumnProperty
-  case object PrimaryKey extends ColumnProperty
-  case object Default    extends ColumnProperty
+  case object Null                                       extends ColumnProperty
+  case object NotNull                                    extends ColumnProperty
+  case object PrimaryKey                                 extends ColumnProperty
+  case object Default                                    extends ColumnProperty
   case class References(table: TableRef, column: String) extends ColumnProperty
+  case object Unique                                     extends ColumnProperty
 }

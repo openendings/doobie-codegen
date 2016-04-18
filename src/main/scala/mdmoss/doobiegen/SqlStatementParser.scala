@@ -43,11 +43,12 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
   /* This rule has to use parens, for an unknown reason */
   def ColumnProperty: Rule1[sql.ColumnProperty] = rule (
     ignoreCase("null") ~ push(sql.Null)
-    | ignoreCase ("not null") ~ push(sql.NotNull)
-    | ignoreCase ("primary key") ~ push(sql.PrimaryKey)
+    | ignoreCase("not null") ~ push(sql.NotNull)
+    | ignoreCase("primary key") ~ push(sql.PrimaryKey)
       /* Our handling of default is getting messier, but it should be replacable all at once later */
-    | ignoreCase ("default") ~ " " ~ optional('(') ~ oneOrMore(CharPredicate.Alpha ++ '_' ++ '-' ++ CharPredicate.Digit) ~ optional(')') ~ push(sql.Default)
-    | ignoreCase ("references") ~ " " ~ TableRef ~ "(" ~ ValidIdentifier ~ ")" ~> ((t: TableRef, column: String) => References(t, column))
+    | ignoreCase("default") ~ " " ~ optional('(') ~ oneOrMore(CharPredicate.Alpha ++ '_' ++ '-' ++ CharPredicate.Digit) ~ optional(')') ~ push(sql.Default)
+    | ignoreCase("references") ~ " " ~ TableRef ~ "(" ~ ValidIdentifier ~ ")" ~> ((t: TableRef, column: String) => References(t, column))
+    | ignoreCase("unique") ~ push(sql.Unique)
   )
 
   /* http://www.postgresql.org/docs/9.4/static/sql-syntax-lexical.html */
