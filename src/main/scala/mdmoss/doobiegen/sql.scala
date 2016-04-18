@@ -59,4 +59,5 @@ object sql {
   case object Default                                    extends ColumnProperty
   case class References(table: TableRef, column: String) extends ColumnProperty
   case object Unique                                     extends ColumnProperty
+  case object Constraint                                 extends ColumnProperty
 }

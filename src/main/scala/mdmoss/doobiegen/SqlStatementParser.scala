@@ -49,6 +49,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
     | ignoreCase("default") ~ " " ~ optional('(') ~ oneOrMore(CharPredicate.Alpha ++ '_' ++ '-' ++ CharPredicate.Digit) ~ optional(')') ~ push(sql.Default)
     | ignoreCase("references") ~ " " ~ TableRef ~ "(" ~ ValidIdentifier ~ ")" ~> ((t: TableRef, column: String) => References(t, column))
     | ignoreCase("unique") ~ push(sql.Unique)
+    | ignoreCase("constraint") ~ " " ~ ValidIdentifier ~ ignoreCase("check") ~ " (" ~ zeroOrMore(noneOf(")")) ~ ")" ~> { (_: Any) => sql.Constraint }
   )
 
   /* http://www.postgresql.org/docs/9.4/static/sql-syntax-lexical.html */
