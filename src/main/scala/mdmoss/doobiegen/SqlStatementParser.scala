@@ -33,6 +33,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
         | ignoreCase("boolean") ~                  push(sql.Boolean)
         | ignoreCase("double precision") ~         push(sql.DoublePrecision)
         | ignoreCase("integer") ~                  push(sql.Integer)
+        | ignoreCase("int") ~                      push(sql.Integer)
         | ignoreCase("text") ~                     push(sql.Text)
         | ignoreCase("timestamp with time zone") ~ push(sql.Timestamp)
         | ignoreCase("timestamp") ~                push(sql.Timestamp)
