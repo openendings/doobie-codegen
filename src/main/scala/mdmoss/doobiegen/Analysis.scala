@@ -1,7 +1,7 @@
 package mdmoss.doobiegen
 
 import mdmoss.doobiegen.Runner.Target
-import mdmoss.doobiegen.sql.{Column, Table}
+import mdmoss.doobiegen.sql.{Column, Table, TableRef}
 
 case class RowRepField(source: List[Column], scalaName: String, scalaType: ScalaType)
 
@@ -24,30 +24,6 @@ object Analysis {
   /* Helpers */
   implicit class CamelCaseStrings(s: String) {
     def camelCase: String = """_([a-z])""".r.replaceAllIn(s, m => m.group(1).capitalize)
-  }
-
-  implicit class ColumnScalaRep(column: sql.Column) {
-
-    def scalaName: String = makeSafe(column.sqlName.camelCase)
-
-    def scalaType: ScalaType = {
-      val base = column.sqlType match {
-        case sql.BigInt          => ScalaType("Long", "0L")
-        case sql.BigSerial       => ScalaType("Long", "0L")
-        case sql.Boolean         => ScalaType("Boolean", "true")
-        case sql.DoublePrecision => ScalaType("Double", "0.0")
-        case sql.Integer         => ScalaType("Int", "0")
-        case sql.Text            => ScalaType("String", "\"\"")
-        case sql.Timestamp       => ScalaType("Timestamp", "new Timestamp(0L)")
-      }
-
-      column.isNullible match {
-        case true => ScalaType(s"Option[${base.symbol}]", "None")
-        case false => base
-      }
-    }
-
-    def scalaRep = RowRepField(List(column), scalaName, scalaType)
   }
 
   implicit class RowRepsForInsert(l: List[RowRepField]) {
@@ -76,6 +52,12 @@ class Analysis(val model: DbModel, val target: Target) {
 
   def privateScope(table: Table) = target.`package`.split('.').reverse.head
 
+  def resolve(ref: TableRef): Table = model.tables.filter { t =>
+    t.ref.schema.map(_.toLowerCase) == ref.schema.map(_.toLowerCase) &&
+    t.ref.sqlName.toLowerCase == ref.sqlName.toLowerCase
+  }.head
+
+
   def pkNewType(table: Table): Option[(List[RowRepField], ScalaType)] = table.primaryKeyColumns match {
     case Nil      => None
     case c :: Nil =>
@@ -88,10 +70,11 @@ class Analysis(val model: DbModel, val target: Target) {
 
   def rowNewType(table: Table): (List[RowRepField], ScalaType) = {
     /* We'll put the primary key first, if any, then other components */
-    val pkPart = pkNewType(table).map { case (reps, newType) => reps match {
-      case r :: Nil => RowRepField(r.source, r.scalaName, newType)
-      case rs       => RowRepField(rs.flatMap(_.source), "pk", newType)
-    }
+    val pkPart = pkNewType(table).map {
+      case (reps, newType) => reps match {
+        case r :: Nil => RowRepField(r.source, "id", newType)
+        case rs       => RowRepField(rs.flatMap(_.source), "pk", newType)
+      }
     }
 
     val parts = pkPart.toList ++ table.nonPrimaryKeyColumns.map(_.scalaRep)
@@ -237,5 +220,59 @@ class Analysis(val model: DbModel, val target: Target) {
     val outer = FunctionDef(None, "count", Seq(), "ConnectionIO[Long]", outerBody)
 
     Count(inner, outer)
+  }
+
+  implicit class ColumnScalaRep(column: sql.Column) {
+
+    def scalaName: String = makeSafe(column.sqlName.camelCase)
+
+    /* This drops any foreign keys after the first, because I'm not sure if that's even valid */
+    def reference = column.properties.flatten {
+      case r @ sql.References(_, _) => Some(r)
+      case _ => None
+    }.headOption
+
+
+    def scalaType: ScalaType = {
+      val base = reference match {
+        case Some(sql.References(table, col)) =>
+          val targetTable = resolve(table)
+          val targetColumn = targetTable.columns.filter(_.sqlName.toLowerCase() == col.toLowerCase).head
+          foreignType(targetTable, targetColumn)
+
+        case None =>
+          column.sqlType match {
+            case sql.BigInt          => ScalaType("Long", "0L")
+            case sql.BigSerial       => ScalaType("Long", "0L")
+            case sql.Boolean         => ScalaType("Boolean", "true")
+            case sql.DoublePrecision => ScalaType("Double", "0.0")
+            case sql.Integer         => ScalaType("Int", "0")
+            case sql.Text            => ScalaType("String", "\"\"")
+            case sql.Timestamp       => ScalaType("Timestamp", "new Timestamp(0L)")
+          }
+      }
+
+      column.isNullible match {
+        case true => ScalaType(s"Option[${base.symbol}]", "None")
+        case false => base
+      }
+    }
+
+    def scalaRep = RowRepField(List(column), scalaName, scalaType)
+  }
+
+  /* This is the type that should be used by other tables referring to the given column */
+  def foreignType(table: Table, column: Column): ScalaType = {
+
+    val rowType = rowNewType(table)
+    val orig = rowType._1.filter(_.source.headOption.contains(column)).head.scalaType
+
+    val symbol = s"${targetObject(table)}.${orig.symbol}"
+    val base = ScalaType(symbol, s"$symbol(${column.scalaType.arb})")
+
+    column.isNullible match {
+      case true => ScalaType(s"Option[${base.symbol}]", "None")
+      case false => base
+    }
   }
 }
