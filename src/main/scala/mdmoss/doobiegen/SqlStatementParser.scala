@@ -1,13 +1,13 @@
 package mdmoss.doobiegen
 
-import mdmoss.doobiegen.sql.{Ignored, References, TableRef}
+import mdmoss.doobiegen.sql._
 import org.parboiled2._
 
 class SqlStatementParser(val input: ParserInput) extends Parser {
 
   def StatementLine = rule { Statement ~ EOI }
 
-  def Statement = rule { CreateTable | CreateSchema | AlterTable | Insert | CreateIndex }
+  def Statement = rule { CreateTable | CreateSchema | AlterTable | Insert | CreateIndex | DropTable }
 
   def CreateTable: Rule1[sql.Statement] = rule {
     ("CREATE TABLE " ~ optional("IF NOT EXISTS ") ~ TableRef ~ '(' ~ OptionalWhitespace ~ zeroOrMore(TableProperty) ~ ");") ~>
@@ -69,9 +69,11 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
     ("CREATE SCHEMA " ~ ValidIdentifier ~ ';') ~> { (name) => sql.CreateSchema(name) }
   }
 
-  def AlterTable: Rule1[sql.Statement] = rule {
-    "ALTER TABLE " ~ TableRef ~ "ADD CONSTRAINT" ~ zeroOrMore(noneOf(";")) ~ ";" ~> ((_: Any) => Ignored)
-  }
+  def AlterTable: Rule1[sql.Statement] = rule (
+      "ALTER TABLE " ~ TableRef ~ "ADD CONSTRAINT" ~ zeroOrMore(noneOf(";")) ~ ";" ~> ((_: Any) => Ignored)
+    | "ALTER TABLE " ~ TableRef ~ "ADD " ~ Column ~ ";" ~> ((table: TableRef, column: Column) => sql.AlterTable(table, AddProperty(column)))
+    | "ALTER TABLE " ~ TableRef ~ "DROP COLUMN " ~ ValidIdentifier ~ ";" ~> ((t: TableRef, column: String) => sql.AlterTable(t, DropColumn(column)))
+  )
 
   def Insert: Rule1[sql.Statement] = rule {
     "INSERT" ~ zeroOrMore(noneOf(";")) ~ ";" ~ push(sql.Ignored)
@@ -79,6 +81,10 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
 
   def CreateIndex: Rule1[sql.Statement] = rule {
     "CREATE INDEX" ~ zeroOrMore(noneOf(";")) ~ ";" ~ push(sql.Ignored)
+  }
+
+  def DropTable: Rule1[sql.Statement] = rule {
+    "DROP TABLE " ~ TableRef ~ ";" ~> ((table: TableRef) => sql.DropTable(table))
   }
 }
 

@@ -25,8 +25,17 @@ object sql {
 
   sealed trait Statement
   case class CreateTable(table: TableRef, properties: Seq[TableProperty]) extends Statement
-
   case class CreateSchema(name: String) extends Statement
+  case class AlterTable(table: TableRef, action: AlterTableAction) extends Statement
+  case class DropTable(table: TableRef) extends Statement
+
+
+
+
+
+  sealed trait AlterTableAction
+  case class AddProperty(tableProperty: TableProperty) extends AlterTableAction
+  case class DropColumn(column: String) extends AlterTableAction
 
   case object Ignored extends Statement
 
