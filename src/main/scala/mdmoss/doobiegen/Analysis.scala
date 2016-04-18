@@ -78,7 +78,7 @@ class Analysis(val model: DbModel, val target: Target) {
     /* We'll put the primary key first, if any, then other components */
     val pkPart = pkNewType(table).map {
       case (reps, newType) => reps match {
-        case r :: Nil => RowRepField(r.source, "id", newType)
+        case r :: Nil => RowRepField(r.source, r.source.head.scalaName, newType)
         case rs       => RowRepField(rs.flatMap(_.source), "pk", newType)
       }
     }
