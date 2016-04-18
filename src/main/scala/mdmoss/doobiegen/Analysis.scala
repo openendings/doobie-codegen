@@ -83,10 +83,7 @@ class Analysis(val model: DbModel, val target: Target) {
       val symbol = c.sqlName.camelCase.capitalize
       val fullyQualified = s"${targetPackage(table)}.${targetObject(table)}.$symbol"
       Some((List(rep), ScalaType(symbol, s"$fullyQualified(${c.scalaType.arb})")))
-    case cs       =>
-      val name = "PrimaryKey"
-      val arb = merge(name, cs.map(_.scalaType))
-      Some((cs.map(_.scalaRep), ScalaType(name, arb)))
+    case cs       => None
   }
 
   def rowNewType(table: Table): (List[RowRepField], ScalaType) = {
@@ -112,7 +109,7 @@ class Analysis(val model: DbModel, val target: Target) {
     val body =
       s"""sql\"\"\"
           |  INSERT INTO ${table.ref.fullName} (${rowNewType(table)._1.sqlColumns})
-          |  VALUES (${params.map(_.name).map(s => s"$$$s").mkString(", ")})
+          |  VALUES (${params.map(_.name).map(s => s"$${$s}").mkString(", ")})
           |\"\"\".update
       """.stripMargin.trim
 
