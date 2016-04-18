@@ -21,6 +21,8 @@ case class Count(inner: FunctionDef, outer: FunctionDef)
 
 case class MultiGet(inner: FunctionDef, outer: FunctionDef)
 
+case class Update(inner: FunctionDef, outer: FunctionDef)
+
 object Analysis {
 
   /* Helpers */
@@ -84,7 +86,8 @@ class Analysis(val model: DbModel, val target: Target) {
     }
 
     val parts = pkPart.toList ++ table.nonPrimaryKeyColumns.map(_.scalaRep)
-    (parts, ScalaType(targetObject(table) + "Row", merge(targetObject(table) + "Row", parts.map(_.scalaType))))
+    val fullyQualified = s"${targetPackage(table)}.${targetObject(table)}.${merge(targetObject(table) + "Row", parts.map(_.scalaType))}"
+    (parts, ScalaType(targetObject(table) + "Row", fullyQualified))
   }
 
   /* We only generate a Shape if there's a primary key, meaning we can't use Row */
@@ -238,8 +241,8 @@ class Analysis(val model: DbModel, val target: Target) {
         /* This is a bit of a hack and will need to change eventually */
         val pkMultigetInnerBodyCondition = table.primaryKeyColumns.map { c =>
           c.reference match {
-            case Some(r) => s"${c.sqlName} = ANY($${{${c.scalaName}}.map(_.value).toArray})"
-            case None => s"${c.sqlName} = ANY($${{${c.scalaName}}.toArray})"
+            case Some(r) => s"${c.sqlName} = ANY($${{${c.scalaName}}.map(_.value.value).toArray})"
+            case None => s"${c.sqlName} = ANY($${{${c.scalaName}}.map(_.value).toArray})"
           }
         }.mkString(" AND ")
 
@@ -295,6 +298,33 @@ class Analysis(val model: DbModel, val target: Target) {
     }
 
     pkMultiget ++ fkMultigets
+  }
+
+  /* This contains some hacks. @Todo fix */
+  def update(table: Table): Option[Update] =  pkNewType(table).map { pk =>
+
+    val row = rowNewType(table)
+    val params = Seq(FunctionParam("row", row._2))
+
+    val innerUpdates = row._1.map(f => s"${f.source.head.sqlName} = $${row.${f.scalaName}}").mkString(", ")
+
+    val innerBody =
+      s"""sql\"\"\"
+         |  UPDATE ${table.ref.fullName}
+         |  SET $innerUpdates
+         |  WHERE ${table.primaryKeyColumns.head.sqlName} = $${row.${table.primaryKeyColumns.head.scalaName}}
+         |\"\"\".update
+         |
+       """.stripMargin
+
+    val inner = FunctionDef(Some(privateScope(table)), "updateInner", params, "Update0", innerBody)
+
+    val outerBody =
+      s"""updateInner(row).run"""
+
+    val outer = FunctionDef(None, "update", params, "ConnectionIO[Int]", outerBody)
+
+    Update(inner, outer)
   }
 
   /**
