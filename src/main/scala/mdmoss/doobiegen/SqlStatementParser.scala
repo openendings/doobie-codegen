@@ -7,7 +7,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
 
   def StatementLine = rule { Statement ~ EOI }
 
-  def Statement = rule { CreateTable | CreateSchema | AlterTable | Insert | CreateIndex | DropTable }
+  def Statement = rule { CreateTable | CreateSchema | AlterTable | Insert | CreateIndex | DropTable | AlterSequence }
 
   def CreateTable: Rule1[sql.Statement] = rule {
     ("CREATE TABLE " ~ optional("IF NOT EXISTS ") ~ TableRef ~ '(' ~ OptionalWhitespace ~ zeroOrMore(TableProperty) ~ ");") ~>
@@ -85,6 +85,10 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
 
   def DropTable: Rule1[sql.Statement] = rule {
     "DROP TABLE " ~ TableRef ~ ";" ~> ((table: TableRef) => sql.DropTable(table))
+  }
+
+  def AlterSequence: Rule1[sql.Statement] = rule {
+    "ALTER SEQUENCE" ~ zeroOrMore(noneOf(";")) ~ ";" ~ push(sql.Ignored)
   }
 }
 
