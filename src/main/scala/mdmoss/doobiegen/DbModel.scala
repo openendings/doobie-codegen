@@ -1,6 +1,6 @@
 package mdmoss.doobiegen
 
-import mdmoss.doobiegen.sql.{CreateSchema, Statement, Table, CreateTable}
+import mdmoss.doobiegen.sql.{Ignored, _}
 
 case class DbModel(tables: Seq[sql.Table])
 
@@ -14,6 +14,7 @@ object DbModel {
 
     /* Statements here have no effect on the model, at present */
     case CreateSchema(_) => model
+    case Ignored => model
   }
 
 }

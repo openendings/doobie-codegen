@@ -28,6 +28,8 @@ object sql {
 
   case class CreateSchema(name: String) extends Statement
 
+  case object Ignored extends Statement
+
   case class Table(ref: TableRef, properties: Seq[TableProperty]) {
     def columns = properties.flatten {
       case c @ Column(_, _, _) => Some(c)

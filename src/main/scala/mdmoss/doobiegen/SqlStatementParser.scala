@@ -1,13 +1,13 @@
 package mdmoss.doobiegen
 
-import mdmoss.doobiegen.sql.{References, TableRef}
+import mdmoss.doobiegen.sql.{Ignored, References, TableRef}
 import org.parboiled2._
 
 class SqlStatementParser(val input: ParserInput) extends Parser {
 
   def StatementLine = rule { Statement ~ EOI }
 
-  def Statement = rule { CreateTable | CreateSchema }
+  def Statement = rule { CreateTable | CreateSchema | AlterTable }
 
   def CreateTable: Rule1[sql.Statement] = rule {
     ("CREATE TABLE " ~ optional("IF NOT EXISTS ") ~ TableRef ~ '(' ~ OptionalWhitespace ~ zeroOrMore(TableProperty) ~ ");") ~>
@@ -39,12 +39,13 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
       ) ~ OptionalWhitespace
   }
 
+  /* This rule has to use parens, for an unknown reason */
   def ColumnProperty: Rule1[sql.ColumnProperty] = rule (
-      ignoreCase("null")     ~ push(sql.Null)
-    | ignoreCase("not null") ~ push(sql.NotNull)
-    | ignoreCase("primary key") ~ push(sql.PrimaryKey)
-    | ignoreCase("default") ~ " " ~ oneOrMore(CharPredicate.Alpha ++ '_') ~ push(sql.Default)
-    | ignoreCase("references") ~ " " ~ TableRef ~ "(" ~ ValidIdentifier ~ ")" ~> ((t: TableRef, column: String) => References(t, column))
+    ignoreCase("null") ~ push(sql.Null)
+    | ignoreCase ("not null") ~ push(sql.NotNull)
+    | ignoreCase ("primary key") ~ push(sql.PrimaryKey)
+    | ignoreCase ("default") ~ " " ~ oneOrMore(CharPredicate.Alpha ++ '_') ~ push(sql.Default)
+    | ignoreCase ("references") ~ " " ~ TableRef ~ "(" ~ ValidIdentifier ~ ")" ~> ((t: TableRef, column: String) => References(t, column))
   )
 
   /* http://www.postgresql.org/docs/9.4/static/sql-syntax-lexical.html */
@@ -64,5 +65,11 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
   def CreateSchema: Rule1[sql.Statement] = rule {
     ("CREATE SCHEMA " ~ ValidIdentifier ~ ';') ~> { (name) => sql.CreateSchema(name) }
   }
+
+  def AlterTable: Rule1[sql.Statement] = rule {
+    "ALTER TABLE " ~ TableRef ~ "ADD CONSTRAINT" ~ zeroOrMore(noneOf(";")) ~ ";" ~> ((_: Any) => Ignored)
+  }
+
+
 }
 
