@@ -16,6 +16,8 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
     | DropTable
     | AlterSequence
     | CreateExtension
+    | Begin
+    | Commit
   )
 
   def CreateTable: Rule1[sql.Statement] = rule {
@@ -84,6 +86,8 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
     | "ALTER TABLE " ~ TableRef ~ "ADD COLUMN " ~ Column ~ ";" ~> ((table: TableRef, column: Column) => sql.AlterTable(table, AddProperty(column)))
     | "ALTER TABLE " ~ TableRef ~ "ADD " ~ Column ~ ";" ~> ((table: TableRef, column: Column) => sql.AlterTable(table, AddProperty(column)))
     | "ALTER TABLE " ~ TableRef ~ "DROP COLUMN " ~ ValidIdentifier ~ ";" ~> ((t: TableRef, column: String) => sql.AlterTable(t, DropColumn(column)))
+    | "ALTER TABLE " ~ TableRef ~ "ALTER COLUMN " ~ ValidIdentifier ~ "DROP " ~ ColumnProperty ~ ";" ~>
+        ((table: TableRef, column: String, property: ColumnProperty) => sql.AlterTable(table, DropColumnProperty(column, property)))
   )
 
   def Insert: Rule1[sql.Statement] = rule {
@@ -105,5 +109,8 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
   def CreateExtension: Rule1[sql.Statement] = rule {
     ignoreCase("create extension") ~ zeroOrMore(noneOf(";")) ~ ";" ~ push(sql.Ignored)
   }
+
+  def Begin = rule { ignoreCase("begin") ~ ";" ~ push(sql.Ignored) }
+  def Commit = rule { ignoreCase("commit") ~ ";" ~ push(sql.Ignored) }
 }
 

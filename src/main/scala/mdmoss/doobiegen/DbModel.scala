@@ -4,6 +4,7 @@ import mdmoss.doobiegen.sql.{Ignored, _}
 
 case class DbModel(tables: Seq[sql.Table])
 
+/* This can probably be cleaned up a lot using lenses */
 object DbModel {
 
   def empty = DbModel(Seq())
@@ -21,6 +22,11 @@ object DbModel {
       case Column(name, _, _) if name == column => false
       case _ => true
     })))
+
+    case AlterTable(table, DropColumnProperty(column, property)) => model.copy(tables = model.tables.map { t => t.copy(properties = t.properties.map {
+      case c@Column(name, _, _) if name == column => c.copy(properties = c.properties.filterNot(_ == property))
+      case p => p
+    })})
 
     case DropTable(table) => model.copy(tables = model.tables.filter(_.ref != table))
 

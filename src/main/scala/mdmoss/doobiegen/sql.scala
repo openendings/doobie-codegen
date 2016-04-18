@@ -36,6 +36,7 @@ object sql {
   sealed trait AlterTableAction
   case class AddProperty(tableProperty: TableProperty) extends AlterTableAction
   case class DropColumn(column: String) extends AlterTableAction
+  case class DropColumnProperty(column: String, property: sql.ColumnProperty) extends AlterTableAction
 
   case object Ignored extends Statement
 
