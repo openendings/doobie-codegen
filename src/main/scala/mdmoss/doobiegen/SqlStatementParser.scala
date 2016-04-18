@@ -44,7 +44,8 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
     ignoreCase("null") ~ push(sql.Null)
     | ignoreCase ("not null") ~ push(sql.NotNull)
     | ignoreCase ("primary key") ~ push(sql.PrimaryKey)
-    | ignoreCase ("default") ~ " " ~ oneOrMore(CharPredicate.Alpha ++ '_') ~ push(sql.Default)
+      /* Our handling of default is getting messier, but it should be replacable all at once later */
+    | ignoreCase ("default") ~ " " ~ optional('(') ~ oneOrMore(CharPredicate.Alpha ++ '_' ++ '-' ++ CharPredicate.Digit) ~ optional(')') ~ push(sql.Default)
     | ignoreCase ("references") ~ " " ~ TableRef ~ "(" ~ ValidIdentifier ~ ")" ~> ((t: TableRef, column: String) => References(t, column))
   )
 
