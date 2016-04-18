@@ -22,7 +22,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
   }
 
   def CompositePrimaryKey: Rule1[sql.CompositePrimaryKey] = rule {
-    ("PRIMARY KEY" ~ '(' ~ oneOrMore(ValidIdentifier ~ optional(',') ~ OptionalWhitespace) ~ ')' ~ OptionalWhitespace) ~>
+    ("PRIMARY KEY" ~ optional(' ') ~ '(' ~ oneOrMore(ValidIdentifier ~ optional(',') ~ OptionalWhitespace) ~ ')' ~ OptionalWhitespace) ~>
       { pkn: Seq[String] => sql.CompositePrimaryKey(pkn) }
   }
 
