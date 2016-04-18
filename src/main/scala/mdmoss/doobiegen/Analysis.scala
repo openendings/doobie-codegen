@@ -1,6 +1,5 @@
 package mdmoss.doobiegen
 
-import mdmoss.doobiegen.Analysis.CodeBits
 import mdmoss.doobiegen.Runner.Target
 import mdmoss.doobiegen.sql.{Column, Table}
 
@@ -29,7 +28,7 @@ object Analysis {
 
   implicit class ColumnScalaRep(column: sql.Column) {
 
-    def scalaName: String = column.sqlName.camelCase
+    def scalaName: String = makeSafe(column.sqlName.camelCase)
 
     def scalaType: ScalaType = {
       val base = column.sqlType match {
@@ -55,13 +54,17 @@ object Analysis {
     def sqlColumns: String = l.flatMap(_.source).map(_.sqlName).mkString(", ")
   }
 
-
   /** Returns an arbitrary using the given constructor and the arb instance for each type in order */
   def merge(constructor: String, scalaTypes: List[ScalaType]): String = {
     s"$constructor(" + scalaTypes.map(_.arb).mkString(", ") + ")"
   }
 
-  trait CodeBits { def parts: Seq[CodePart] }
+  def makeSafe(string: String): String = if (ReservedWords.contains(string)) s"`$string`" else string
+
+  val ReservedWords = Seq(
+    "type",
+    "package"
+  )
 }
 
 class Analysis(val model: DbModel, val target: Target) {
