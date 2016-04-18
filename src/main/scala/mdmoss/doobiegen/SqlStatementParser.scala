@@ -72,6 +72,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
 
   def AlterTable: Rule1[sql.Statement] = rule (
       "ALTER TABLE " ~ TableRef ~ "ADD CONSTRAINT" ~ zeroOrMore(noneOf(";")) ~ ";" ~> ((_: Any) => Ignored)
+    | "ALTER TABLE " ~ TableRef ~ "ADD COLUMN " ~ Column ~ ";" ~> ((table: TableRef, column: Column) => sql.AlterTable(table, AddProperty(column)))
     | "ALTER TABLE " ~ TableRef ~ "ADD " ~ Column ~ ";" ~> ((table: TableRef, column: Column) => sql.AlterTable(table, AddProperty(column)))
     | "ALTER TABLE " ~ TableRef ~ "DROP COLUMN " ~ ValidIdentifier ~ ";" ~> ((t: TableRef, column: String) => sql.AlterTable(t, DropColumn(column)))
   )
