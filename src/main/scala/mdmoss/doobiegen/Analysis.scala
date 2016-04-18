@@ -43,6 +43,10 @@ object Analysis {
     "type",
     "package"
   )
+
+  val SkipInsert = Seq(
+    sql.BigSerial
+  )
 }
 
 class Analysis(val model: DbModel, val target: Target) {
@@ -90,7 +94,7 @@ class Analysis(val model: DbModel, val target: Target) {
   }
 
   def insert(table: Table): Insert = {
-    val params = rowNewType(table)._1.map(t => FunctionParam(t.scalaName, t.scalaType))
+    val params = rowNewType(table)._1.filterNot(r => SkipInsert.contains(r.source.head.sqlType)).map(t => FunctionParam(t.scalaName, t.scalaType))
     val body =
       s"""sql\"\"\"
           |  INSERT INTO ${table.ref.fullName} (${rowNewType(table)._1.sqlColumns})

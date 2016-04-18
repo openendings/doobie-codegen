@@ -25,3 +25,8 @@ CREATE TABLE test_nullible (
 CREATE TABLE test_pk (
     id BIGINT PRIMARY KEY
 );
+
+CREATE TABLE test_skip_bigserial (
+    id1 BIGSERIAL PRIMARY KEY,
+    id2 BIGINT NOT NULL
+);
