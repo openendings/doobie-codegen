@@ -24,8 +24,8 @@ object UsageSpec extends Specification {
     }
 
     "Must escape database strings to avoid case issues" >> {
-      transactor.trans(Test_Table_With_Caps.create(None)).run must_== 1
-
+      val row = transactor.trans(Test_Table_With_Caps.create(None)).run
+      transactor.trans(Test_Table_With_Caps.update(row)).attemptRun.isRight must_== true
     }
 
   }

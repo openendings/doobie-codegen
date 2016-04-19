@@ -20,7 +20,8 @@ object sql {
 
   case class TableRef(schema: Option[String], sqlName: String) {
     /* I don't like this name. @todo change this. */
-    def fullName = schema.map(s => s"$s.").getOrElse("") + sqlName
+    /* Also, see case notes on Analysis.RowRepsForInsert.sqlColumns. */
+    def fullName = schema.map(s => s"${s.toLowerCase}.").getOrElse("") + sqlName.toLowerCase
   }
 
   sealed trait Statement

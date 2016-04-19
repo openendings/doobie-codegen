@@ -31,7 +31,18 @@ object Analysis {
   }
 
   implicit class RowRepsForInsert(l: List[RowRepField]) {
-    def sqlColumns: String = l.flatMap(_.source).map(_.sqlName).mkString(", ")
+    /* We lowercase everything here to avoid case issues */
+    def sqlColumns: String = l.flatMap(_.source).map(c => c.sqlName.toLowerCase).mkString(", ")
+
+    /*
+     * Case is an interesting question. According to what I've heard about the issue, we should be lowercasing
+     * any table and column names that aren't quoted.
+     *
+     * See http://stackoverflow.com/questions/20878932/are-postgresql-column-names-case-sensitive
+     *
+     * I think the correct way to handle this is to do what the database does: Add quotes to the parser, and use either
+     * a lowercase string or the exact, quoted string as appropriate. @Todo.
+     */
   }
 
   /** Returns an arbitrary using the given constructor and the arb instance for each type in order */
@@ -123,7 +134,7 @@ class Analysis(val model: DbModel, val target: Target) {
     val body =
       s"""
         |  insert(${in.fn.params.map(f => f.name).mkString(", ")})
-        |    .withUniqueGeneratedKeys[${rowType._2.symbol}](${rowType._1.flatMap(_.source.map(s => "\"" + s.sqlName + "\"")).mkString(", ")})
+        |    .withUniqueGeneratedKeys[${rowType._2.symbol}](${rowType._1.flatMap(_.source.map(s => "\"" + s.sqlName.toLowerCase() + "\"")).mkString(", ")})
      """.stripMargin
 
     val fn = FunctionDef(None, "create", in.fn.params, s"ConnectionIO[${rowType._2.symbol}]", body)
