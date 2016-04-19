@@ -30,3 +30,12 @@ CREATE TABLE test_skip_bigserial (
     id1 BIGSERIAL PRIMARY KEY,
     id2 BIGINT NOT NULL
 );
+
+CREATE TABLE test_fk_1 (
+  id BIGSERIAL PRIMARY KEY
+);
+
+CREATE TABLE test_fk_2 (
+  id BIGSERIAL PRIMARY KEY,
+  fk BIGINT NOT NULL REFERENCES test_fk_1(id)
+);
