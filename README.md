@@ -9,14 +9,14 @@ Definitely a work in progress!
 
 ### Usage
 
-I tend to add a project to my build.sbt like the following. There's no releases at present and things are rapidly changing, so I just grab the snapshot via Jitpack.
+I tend to add a project to my build.sbt like the following.
 
 ```
 lazy val gen = (project in file("doobie-codegen"))
   .settings(
     scalaVersion := "2.11.7",
     resolvers += "Jitpack" at "https://jitpack.io",
-    libraryDependencies += "com.github.mdmoss" %% "doobie-codegen" % "v0.0.1"
+    libraryDependencies += "com.github.mdmoss" %% "doobie-codegen" % "v0.0.2"
   )
 ```
 
