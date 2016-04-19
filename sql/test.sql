@@ -44,3 +44,16 @@ CREATE TABLE test_Table_With_Caps (
   id BIGSERIAL PRIMARY KEY,
   someValue TEXT
 );
+
+CREATE SCHEMA s1;
+
+CREATE SCHEMA s2;
+
+CREATE TABLE s1.test (
+  id BIGSERIAL PRIMARY KEY
+);
+
+CREATE TABLE s2.test2 (
+  id BIGSERIAL PRIMARY KEY,
+  partner BIGINT NOT NULL REFERENCES s1.test(id)
+);

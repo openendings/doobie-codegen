@@ -122,18 +122,18 @@ class Generator(analysis: Analysis) {
 
   def genPkNewType(table: Table): String = {
     a.pkNewType(table).map { pk =>
-      s"case class ${pk._2.symbol}(${pk._1.map(f => s"${f.scalaName}: ${f.scalaType.symbol}").mkString(", ")})"
+      s"case class ${pk._2.symbol}(${pk._1.map(f => s"${f.scalaName}: ${f.scalaType.qualifiedSymbol}").mkString(", ")})"
     }.getOrElse("")
   }
 
   def genRowType(table: Table): String = {
     val row = a.rowNewType(table)
-    s"case class ${row._2.symbol}(${row._1.map(f => s"${f.scalaName}: ${f.scalaType.symbol}").mkString(", ")})"
+    s"case class ${row._2.symbol}(${row._1.map(f => s"${f.scalaName}: ${f.scalaType.qualifiedSymbol}").mkString(", ")})"
   }
 
   def genShapeType(table: Table): String = {
     a.rowShape(table).map { shape =>
-      s"case class ${shape._2.symbol}(${shape._1.map(f => s"${f.scalaName}: ${f.scalaType.symbol}").mkString(", ")})"
+      s"case class ${shape._2.symbol}(${shape._1.map(f => s"${f.scalaName}: ${f.scalaType.qualifiedSymbol}").mkString(", ")})"
     }.getOrElse("")
 
   }
@@ -150,7 +150,7 @@ class Generator(analysis: Analysis) {
 
   def ppFunctionDef(fn: FunctionDef): String = {
     val scope = fn.privatePkg.map { p => s"private[$p]" }.getOrElse("")
-    val params = fn.params.map(f => s"${f.name}: ${f.`type`.symbol}").mkString(", ")
+    val params = fn.params.map(f => s"${f.name}: ${f.`type`.qualifiedSymbol}").mkString(", ")
 
     s"""$scope def ${fn.name}($params): ${fn.returnType} = {
        |${fn.body}
@@ -169,7 +169,7 @@ class Generator(analysis: Analysis) {
 
   def checkTest(table: Table, fn: FunctionDef): String = {
     val obj = a.targetObject(table)
-    s"""check($obj.${fn.name}(${fn.params.map(_.`type`.arb).mkString(", ")}))"""
+    s"""check($obj.${fn.name}(${fn.params.map(_.`type`.qualifiedArb).mkString(", ")}))"""
   }
 
 }

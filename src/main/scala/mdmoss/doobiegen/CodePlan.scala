@@ -14,5 +14,11 @@ case class PKNewtype(columns: Seq[sql.Column], scalaType: ScalaType) extends Pla
 
 case class RowRep(table: TableRef, fields: Seq[RowRepField], scalaType: ScalaType) extends PlanPart
 
-
-case class ScalaType(symbol: String, arb: String)
+/**
+  * @param `package` location relative to the target package, including target name, for generated types
+  *                  eg. for mdmoss.doobiegen.db.gen.Test.Row: ScalaType("Row", "Row()", "db.gen.Test")
+  */
+case class ScalaType(symbol: String, arb: String, `package`: Option[String]) {
+  def qualifiedSymbol: String = `package`.map(_ + ".").getOrElse("") + symbol
+  def qualifiedArb: String = `package`.map(_ + ".").getOrElse("") + arb
+}

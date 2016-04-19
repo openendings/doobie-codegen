@@ -47,7 +47,7 @@ object Analysis {
 
   /** Returns an arbitrary using the given constructor and the arb instance for each type in order */
   def merge(constructor: String, scalaTypes: List[ScalaType]): String = {
-    s"$constructor(" + scalaTypes.map(_.arb).mkString(", ") + ")"
+    s"$constructor(" + scalaTypes.map(_.qualifiedArb).mkString(", ") + ")"
   }
 
   def makeSafe(string: String): String = if (ReservedWords.contains(string)) s"`$string`" else string
@@ -69,6 +69,8 @@ class Analysis(val model: DbModel, val target: Target) {
 
   def targetObject(table: Table) = table.ref.sqlName.camelCase.capitalize
 
+  def fullTarget(table: Table) = targetPackage(table) + "." + targetObject(table)
+
   def privateScope(table: Table) = target.`package`.split('.').reverse.head
 
   def resolve(ref: TableRef): Table = model.tables.filter { t =>
@@ -82,8 +84,8 @@ class Analysis(val model: DbModel, val target: Target) {
     case c :: Nil =>
       val rep = c.scalaRep.copy(scalaName = "value")
       val symbol = c.sqlName.camelCase.capitalize
-      val fullyQualified = s"${targetPackage(table)}.${targetObject(table)}.$symbol"
-      Some((List(rep), ScalaType(symbol, s"$fullyQualified(${c.scalaType.arb})")))
+      val arb = merge(symbol, List(c.scalaType))
+      Some(List(rep), ScalaType(symbol, arb, Some(fullTarget(table))))
     case cs       => None
   }
 
@@ -97,14 +99,14 @@ class Analysis(val model: DbModel, val target: Target) {
     }
 
     val parts = pkPart.toList ++ table.nonPrimaryKeyColumns.map(_.scalaRep)
-    val fullyQualified = s"${targetPackage(table)}.${targetObject(table)}.${merge("Row", parts.map(_.scalaType))}"
-    (parts, ScalaType("Row", fullyQualified))
+    val arb = merge("Row", parts.map(_.scalaType))
+    (parts, ScalaType("Row", arb, Some(fullTarget(table))))
   }
 
   /* We only generate a Shape if there's a primary key, meaning we can't use Row */
   def rowShape(table: Table): Option[(List[RowRepField], ScalaType)] = pkNewType(table).map { pk =>
     val parts = table.nonPrimaryKeyColumns.map(_.scalaRep)
-    (parts, ScalaType("Shape", merge(targetObject(table) + "Shape", parts.map(_.scalaType))))
+    (parts, ScalaType("Shape", merge("Shape", parts.map(_.scalaType)), Some(fullTarget(table))))
   }
 
   /* We somehow get information about row sources / values from different places. @Todo unify */
@@ -211,7 +213,7 @@ class Analysis(val model: DbModel, val target: Target) {
 
   def all(table: Table): All = {
     val rowType = rowNewType(table)
-    val offsetLimit = Seq(FunctionParam("offset", ScalaType("Long", "0L")), FunctionParam("limit", ScalaType("Long", "0L")))
+    val offsetLimit = Seq(FunctionParam("offset", ScalaType("Long", "0L", None)), FunctionParam("limit", ScalaType("Long", "0L", None)))
 
     val innerBody =
       s"""sql\"\"\"
@@ -358,7 +360,7 @@ class Analysis(val model: DbModel, val target: Target) {
   /**
     * Wraps the given type in some applicative thing.
     */
-  def app(t: ScalaType, app: String): ScalaType = ScalaType(s"$app[${t.symbol}]", s"$app(${t.arb})")
+  def app(t: ScalaType, app: String): ScalaType = ScalaType(s"$app[${t.qualifiedSymbol}]", s"$app(${t.qualifiedArb})", None)
 
 
   implicit class ColumnScalaRep(column: sql.Column) {
@@ -381,18 +383,18 @@ class Analysis(val model: DbModel, val target: Target) {
 
         case None =>
           column.sqlType match {
-            case sql.BigInt          => ScalaType("Long", "0L")
-            case sql.BigSerial       => ScalaType("Long", "0L")
-            case sql.Boolean         => ScalaType("Boolean", "true")
-            case sql.DoublePrecision => ScalaType("Double", "0.0")
-            case sql.Integer         => ScalaType("Int", "0")
-            case sql.Text            => ScalaType("String", "\"\"")
-            case sql.Timestamp       => ScalaType("Timestamp", "new Timestamp(0L)")
+            case sql.BigInt          => ScalaType("Long", "0L", None)
+            case sql.BigSerial       => ScalaType("Long", "0L", None)
+            case sql.Boolean         => ScalaType("Boolean", "true", None)
+            case sql.DoublePrecision => ScalaType("Double", "0.0", None)
+            case sql.Integer         => ScalaType("Int", "0", None)
+            case sql.Text            => ScalaType("String", "\"\"", None)
+            case sql.Timestamp       => ScalaType("Timestamp", "new Timestamp(0L)", None)
           }
       }
 
       column.isNullible match {
-        case true => ScalaType(s"Option[${base.symbol}]", "None")
+        case true => ScalaType(s"Option[${base.qualifiedSymbol}]", "None", None)
         case false => base
       }
     }
@@ -406,12 +408,9 @@ class Analysis(val model: DbModel, val target: Target) {
     val rowType = rowNewType(table)
     val orig = rowType._1.filter(_.source.headOption.contains(column)).head.scalaType
 
-    val symbol = s"${targetObject(table)}.${orig.symbol}"
-    val base = ScalaType(symbol, s"$symbol(${column.scalaType.arb})")
-
     column.isNullible match {
-      case true => ScalaType(s"Option[${base.symbol}]", "None")
-      case false => base
+      case true => ScalaType(s"Option[${orig.qualifiedSymbol}]", "None", None)
+      case false => orig
     }
   }
 }
