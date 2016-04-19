@@ -80,7 +80,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
   def OptionalWhitespace = rule { zeroOrMore(anyOf(" \n\t")) }
 
   def CreateSchema: Rule1[sql.Statement] = rule {
-    ("CREATE SCHEMA " ~ ValidIdentifier ~ ';') ~> { (name) => sql.CreateSchema(name) }
+    ("CREATE SCHEMA " ~ optional("IF NOT EXISTS ") ~ ValidIdentifier ~ ';') ~> { (name) => sql.CreateSchema(name) }
   }
 
   def AlterTable: Rule1[sql.Statement] = rule (
