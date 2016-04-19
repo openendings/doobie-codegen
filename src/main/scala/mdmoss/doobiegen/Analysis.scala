@@ -70,7 +70,7 @@ class Analysis(val model: DbModel, val target: Target) {
     case Nil      => None
     case c :: Nil =>
       val rep = c.scalaRep.copy(scalaName = "value")
-      val symbol = targetObject(table) + c.sqlName.camelCase.capitalize
+      val symbol = c.sqlName.camelCase.capitalize
       val fullyQualified = s"${targetPackage(table)}.${targetObject(table)}.$symbol"
       Some((List(rep), ScalaType(symbol, s"$fullyQualified(${c.scalaType.arb})")))
     case cs       => None
@@ -86,8 +86,8 @@ class Analysis(val model: DbModel, val target: Target) {
     }
 
     val parts = pkPart.toList ++ table.nonPrimaryKeyColumns.map(_.scalaRep)
-    val fullyQualified = s"${targetPackage(table)}.${targetObject(table)}.${merge(targetObject(table) + "Row", parts.map(_.scalaType))}"
-    (parts, ScalaType(targetObject(table) + "Row", fullyQualified))
+    val fullyQualified = s"${targetPackage(table)}.${targetObject(table)}.${merge("Row", parts.map(_.scalaType))}"
+    (parts, ScalaType("Row", fullyQualified))
   }
 
   /* We only generate a Shape if there's a primary key, meaning we can't use Row */
