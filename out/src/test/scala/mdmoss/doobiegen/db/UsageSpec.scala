@@ -1,6 +1,7 @@
 package mdmoss.doobiegen.db
 
 import doobie.imports._
+import mdmoss.doobiegen.db.gen.Test_Table_With_Caps
 import mdmoss.doobiegen.db.schema.gen.Test
 import org.specs2.mutable.Specification
 
@@ -16,13 +17,16 @@ object UsageSpec extends Specification {
   } yield ()
 
 
-  "Doobiegen methods" >> {
+  "doobiegen methods" >> {
 
-    "Must run without errors when called correctly" >> {
+    "must run without errors when called correctly" >> {
       transactor.trans(work).run must_== (())
     }
 
+    "Must escape database strings to avoid case issues" >> {
+      transactor.trans(Test_Table_With_Caps.create(None)).run must_== 1
 
+    }
 
   }
 

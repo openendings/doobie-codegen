@@ -39,3 +39,8 @@ CREATE TABLE test_fk_2 (
   id BIGSERIAL PRIMARY KEY,
   fk BIGINT NOT NULL REFERENCES test_fk_1(id)
 );
+
+CREATE TABLE test_Table_With_Caps (
+  id BIGSERIAL PRIMARY KEY,
+  someValue TEXT
+);
