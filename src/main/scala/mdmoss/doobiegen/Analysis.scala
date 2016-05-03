@@ -151,11 +151,11 @@ class Analysis(val model: DbModel, val target: Target) {
       s"""sql\"\"\"
          |  SELECT ${rowType._1.sqlColumns}
          |  FROM ${table.ref.fullName}
-         |  WHERE ${pk._1.sqlColumns} = $$id
+         |  WHERE ${pk._1.sqlColumns} = $${${pk._1.head.source.head.scalaName}}
          |\"\"\".query[${rowType._2.symbol}]
        """.stripMargin
 
-    val inner = FunctionDef(Some(privateScope(table)), "getInner", Seq(FunctionParam("id", pk._2)), s"Query0[${rowType._2.symbol}]", innerBody)
+    val inner = FunctionDef(Some(privateScope(table)), "getInner", Seq(FunctionParam(pk._1.head.source.head.scalaName, pk._2)), s"Query0[${rowType._2.symbol}]", innerBody)
 
     val outerBody =
       s"""
@@ -175,13 +175,13 @@ class Analysis(val model: DbModel, val target: Target) {
       s"""sql\"\"\"
           |  SELECT ${rowType._1.sqlColumns}
           |  FROM ${table.ref.fullName}
-          |  WHERE ${pk._1.sqlColumns} = $$id
+          |  WHERE ${pk._1.sqlColumns} = $${${pk._1.head.source.head.scalaName}}
           |\"\"\".query[${rowType._2.symbol}]
        """.stripMargin
 
     val params = pk._1 match {
-      case p :: Nil => Seq(FunctionParam("id", p.scalaType))
-      case ps => ps.zipWithIndex.map { case (p, i) => FunctionParam(s"id$i", p.scalaType)}
+      case p :: Nil => Seq(FunctionParam(p.source.head.scalaName, p.scalaType))
+      case ps => ps.zipWithIndex.map { case (p, i) => FunctionParam(p.source.head.scalaName, p.scalaType)}
     }
     val inner = FunctionDef(Some(privateScope(table)), "findInner", params, s"Query0[${rowType._2.symbol}]", innerBody)
 

@@ -64,3 +64,7 @@ CREATE TABLE test_drop_1 (
 );
 
 ALTER TABLE test_drop_1 DROP COLUMN id;
+
+CREATE TABLE test_pk_name (
+  some_complicated_name TEXT PRIMARY KEY
+);
