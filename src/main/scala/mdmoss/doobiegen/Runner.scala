@@ -95,9 +95,41 @@ object Runner {
 
     val files = generator.gen
 
+    cleanOldGenDirectories(Paths.get(target.src), files)
     SourceWriter.write(Paths.get(target.src), files)
+  }
 
+  def cleanOldGenDirectories(sourceRoot: java.nio.file.Path, files: Seq[output.File]): Unit = {
+    files.foreach { f =>
+      val mainOrTest = if (f.isTest) "test" else "main"
 
+      val destDir = Paths.get(sourceRoot.toString, List(mainOrTest, "scala") ++ f.`package`.split('.'):_*)
+
+      /* This is very heavy-handed. Todo make this nicer */
+
+      /* Step one - go up a level, descend a level */
+      destDir.toFile.getParentFile.listFiles()
+        .filter(_.isDirectory)
+        .flatMap(_.listFiles())
+        .filter(_.isDirectory)
+        .filter(_.toPath.endsWith("gen"))
+        .foreach(delete)
+
+      /* Step two - go up a level */
+      destDir.toFile.getParentFile.listFiles()
+        .filter(_.isDirectory)
+        .filter(_.toPath.endsWith("gen"))
+        .foreach(delete)
+    }
+  }
+
+  def delete(file: File): Unit = {
+    if (file.isDirectory) {
+      file.listFiles().foreach(delete)
+      file.delete()
+    } else {
+      file.delete()
+    }
   }
 
   def main(args: Array[String]) = {
