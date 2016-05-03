@@ -316,7 +316,36 @@ class Analysis(val model: DbModel, val target: Target) {
       case _ => Seq()
     }
 
-    pkMultiget ++ fkMultigets
+    val singularFkMultigets = table.columns.flatMap {
+      case c @ Column(colName, colType, copProps) if c.reference.isDefined && !c.isNullible =>
+
+        val params = List(FunctionParam(c.scalaName, c.scalaType))
+
+        val condition = c.reference match {
+          case Some(ref) => s"${c.sqlName} = $${${c.scalaName}}"
+          case None => s"${c.sqlName} = $${${c.scalaName}}"
+        }
+
+        val innerBody =
+          s"""sql\"\"\"
+              |  SELECT ${rowType._1.sqlColumns}
+              |  FROM ${table.ref.fullName}
+              |  WHERE $condition
+              |\"\"\".query[${rowType._2.symbol}]
+       """.stripMargin
+
+        val inner = FunctionDef(Some(privateScope(table)), s"getBy${c.scalaName.capitalize}Inner", params, s"Query0[${rowType._2.symbol}]", innerBody)
+
+        val outerBody = s"""${inner.name}(${params.head.name}).list"""
+
+        val outer = FunctionDef(None, s"getBy${c.scalaName.capitalize}", params, s"ConnectionIO[List[${rowType._2.symbol}]]", outerBody)
+
+        Seq(MultiGet(inner, outer))
+
+      case _ => Seq()
+    }
+
+    pkMultiget ++ fkMultigets ++ singularFkMultigets
   }
 
   /* This contains some hacks. @Todo fix */
