@@ -57,3 +57,10 @@ CREATE TABLE s2.test2 (
   id BIGSERIAL PRIMARY KEY,
   partner BIGINT NOT NULL REFERENCES s1.test(id)
 );
+
+CREATE TABLE test_drop_1 (
+  id BIGSERIAL PRIMARY KEY,
+  thing INT NOT NULL
+);
+
+ALTER TABLE test_drop_1 DROP COLUMN id;
