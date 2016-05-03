@@ -109,12 +109,31 @@ class Analysis(val model: DbModel, val target: Target) {
     (parts, ScalaType("Shape", merge("Shape", parts.map(_.scalaType)), Some(fullTarget(table))))
   }
 
+  def getColumn(table: TableRef, name: String): sql.Column = {
+    model.tables.filter(_.ref == table).head.columns.filter(_.sqlName == name).head
+  }
+
+  def getTable(table: TableRef) = model.tables.find(_.ref == table).get
+
+  /* Gets the param type used to reference a table and column */
+  def paramType(table: TableRef, column: sql.Column): FunctionParam = {
+    val source = rowNewType(getTable(table))._1.filter(_.source.contains(column)).head
+    FunctionParam(source.scalaName, source.scalaType)
+  }
+
+  def getParam(r: RowRepField): FunctionParam = {
+    r.source.head.references match {
+      case Some(sql.References(fTable, fCol)) => paramType(fTable, getColumn(fTable, fCol))
+      case None => FunctionParam(r.scalaName, r.scalaType)
+    }
+  }
+
   /* We somehow get information about row sources / values from different places. @Todo unify */
   def insert(table: Table): Insert = {
-    val params = rowNewType(table)._1.filterNot(r => SkipInsert.contains(r.source.head.sqlType)).map(t => FunctionParam(t.scalaName, t.scalaType))
+    val params = rowNewType(table)._1.filterNot(r => SkipInsert.contains(r.source.head.sqlType)).map(getParam)
     val values = rowNewType(table)._1.map(r => SkipInsert.contains(r.source.head.sqlType) match {
       case true => "default"
-      case false => s"$${${r.scalaName}}"
+      case false => s"$${${getParam(r).name}}"
     }).mkString(", ")
 
     val body =

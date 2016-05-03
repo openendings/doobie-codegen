@@ -14,6 +14,10 @@ object sql {
   sealed trait TableProperty
   case class Column(sqlName: String, sqlType: Type, properties: Seq[ColumnProperty]) extends TableProperty {
     def isNullible = properties.contains(Null) || (!properties.contains(NotNull) && !properties.contains(PrimaryKey))
+    def references: Option[sql.References] = properties.flatten {
+      case r @ References(_, _) => Some(r)
+      case _ => None
+    }.headOption
   }
 
   case class CompositePrimaryKey(columnNames: Seq[String]) extends TableProperty

@@ -70,3 +70,7 @@ CREATE TABLE test_pk_name (
 );
 
 DELETE FROM test_pk_name WHERE true;
+
+CREATE TABLE test_foreign_pk(
+  name TEXT PRIMARY KEY references test_pk_name(some_complicated_name)
+);
