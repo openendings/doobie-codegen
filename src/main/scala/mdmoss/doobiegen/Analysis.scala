@@ -109,11 +109,17 @@ class Analysis(val model: DbModel, val target: Target) {
     (parts, ScalaType("Shape", merge("Shape", parts.map(_.scalaType)), Some(fullTarget(table))))
   }
 
-  def getColumn(table: TableRef, name: String): sql.Column = {
-    model.tables.filter(_.ref == table).head.columns.filter(_.sqlName == name).head
+  /* We need this to get around casing issues for now. Todo fix this */
+  def equalRef(t1: TableRef, t2: TableRef): Boolean = {
+    t1.schema.map(_.toLowerCase) == t2.schema.map(_.toLowerCase) &&
+    t1.sqlName.toLowerCase == t2.sqlName.toLowerCase
   }
 
-  def getTable(table: TableRef) = model.tables.find(_.ref == table).get
+  def getColumn(table: TableRef, name: String): sql.Column = {
+    model.tables.filter(t => equalRef(t.ref, table)).head.columns.filter(_.sqlName == name).head
+  }
+
+  def getTable(table: TableRef) = model.tables.find(t => equalRef(t.ref, table)).get
 
   /* Gets the param type used to reference a table and column */
   def paramType(table: TableRef, column: sql.Column): FunctionParam = {
@@ -123,7 +129,12 @@ class Analysis(val model: DbModel, val target: Target) {
 
   def getParam(r: RowRepField): FunctionParam = {
     r.source.head.references match {
-      case Some(sql.References(fTable, fCol)) => paramType(fTable, getColumn(fTable, fCol))
+      case Some(sql.References(fTable, fCol)) =>
+        val p = paramType(fTable, getColumn(fTable, fCol)).copy(name = r.scalaName)
+        r.source.head.isNullible match {
+          case true => p.copy(`type` = p.`type`.copy(symbol = s"Option[${p.`type`.qualifiedSymbol}]", "None", None))
+          case false => p
+        }
       case None => FunctionParam(r.scalaName, r.scalaType)
     }
   }
