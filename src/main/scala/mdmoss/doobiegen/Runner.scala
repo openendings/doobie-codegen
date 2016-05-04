@@ -7,7 +7,7 @@ import mdmoss.doobiegen.output.SourceWriter
 import org.parboiled2.ParseError
 
 import scala.collection.mutable.ListBuffer
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 object Runner {
 
@@ -101,25 +101,27 @@ object Runner {
 
   def cleanOldGenDirectories(sourceRoot: java.nio.file.Path, files: Seq[output.File]): Unit = {
     files.foreach { f =>
-      val mainOrTest = if (f.isTest) "test" else "main"
+      Try {
+        val mainOrTest = if (f.isTest) "test" else "main"
 
-      val destDir = Paths.get(sourceRoot.toString, List(mainOrTest, "scala") ++ f.`package`.split('.'):_*)
+        val destDir = Paths.get(sourceRoot.toString, List(mainOrTest, "scala") ++ f.`package`.split('.'):_*)
 
-      /* This is very heavy-handed. Todo make this nicer */
+        /* This is very heavy-handed. Todo make this nicer */
 
-      /* Step one - go up a level, descend a level */
-      destDir.toFile.getParentFile.listFiles()
-        .filter(_.isDirectory)
-        .flatMap(_.listFiles())
-        .filter(_.isDirectory)
-        .filter(_.toPath.endsWith("gen"))
-        .foreach(delete)
+        /* Step one - go up a level, descend a level */
+        destDir.toFile.getParentFile.listFiles()
+          .filter(_.isDirectory)
+          .flatMap(_.listFiles())
+          .filter(_.isDirectory)
+          .filter(_.toPath.endsWith("gen"))
+          .foreach(delete)
 
-      /* Step two - go up a level */
-      destDir.toFile.getParentFile.listFiles()
-        .filter(_.isDirectory)
-        .filter(_.toPath.endsWith("gen"))
-        .foreach(delete)
+        /* Step two - go up a level */
+        destDir.toFile.getParentFile.listFiles()
+          .filter(_.isDirectory)
+          .filter(_.toPath.endsWith("gen"))
+          .foreach(delete)
+      }
     }
   }
 
