@@ -74,3 +74,9 @@ DELETE FROM test_pk_name WHERE true;
 CREATE TABLE test_foreign_pk(
   name TEXT PRIMARY KEY references test_pk_name(some_complicated_name)
 );
+
+CREATE TABLE test_composite_unique(
+  a TEXT NOT NULL,
+  b TEXT NOT NULL,
+  UNIQUE (a, b)
+);
