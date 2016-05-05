@@ -80,3 +80,7 @@ CREATE TABLE test_composite_unique(
   b TEXT NOT NULL,
   UNIQUE (a, b)
 );
+
+CREATE VIEW test_view AS SELECT * FROM test_composite_unique;
+
+DROP VIEW test_view;
