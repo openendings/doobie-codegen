@@ -84,3 +84,8 @@ CREATE TABLE test_composite_unique(
 CREATE VIEW test_view AS SELECT * FROM test_composite_unique;
 
 DROP VIEW test_view;
+
+CREATE TABLE test_typical_table(
+  id    BIGSERIAL PRIMARY KEY,
+  words TEXT NOT NULL
+);

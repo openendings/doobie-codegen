@@ -23,6 +23,7 @@ class Generator(analysis: Analysis) {
             |import doobie.imports._
             |import java.sql.Timestamp
             |import doobie.contrib.postgresql.pgtypes._
+            |import scalaz._, Scalaz._
             |
             |object ${a.targetObject(t)} {
             |
@@ -34,7 +35,13 @@ class Generator(analysis: Analysis) {
             |
             |  ${ppFunctionDef(a.insert(t).fn)}
             |
+            |  ${a.insertMany(t).map(im => ppFunctionDef(im.fn)).getOrElse("")}
+            |
             |  ${ppFunctionDef(a.create(t).fn)}
+            |
+            |  ${a.createMany(t).map(cm =>
+                  ppFunctionDef(cm.process) + "\n" +
+                  ppFunctionDef(cm.list)).getOrElse("")}
             |
             |  ${a.get(t).map { g =>
                   ppFunctionDef(g.inner) + "\n" +
@@ -85,13 +92,15 @@ class Generator(analysis: Analysis) {
             |import org.specs2.mutable.Specification
             |import scalaz.concurrent.Task
             |import doobie.contrib.specs2.analysisspec.AnalysisSpec
-            |import scalaz.NonEmptyList
+            |import scalaz._, Scalaz._
             |
             |object ${a.targetObject(t)}Spec extends Specification with AnalysisSpec {
             |
             |  val transactor = DriverManagerTransactor[Task]("${tr.driver}", "${tr.url}", "${tr.username}", "${tr.password}")
             |
             |  ${checkTest(t, a.insert(t).fn)}
+            |
+            |  ${a.insertMany(t).map(im => checkTest(t, im.fn)).getOrElse("")}
             |
             |  ${a.get(t).map { g => checkTest(t, g.inner)}.getOrElse("")}
             |

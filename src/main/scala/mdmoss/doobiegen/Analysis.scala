@@ -7,7 +7,11 @@ case class RowRepField(source: List[Column], scalaName: String, scalaType: Scala
 
 case class Insert(fn: FunctionDef)
 
+case class InsertMany(fn: FunctionDef)
+
 case class Create(fn: FunctionDef)
+
+case class CreateMany(process: FunctionDef, list: FunctionDef)
 
 case class Get(inner: FunctionDef, outer: FunctionDef)
 
@@ -104,9 +108,13 @@ class Analysis(val model: DbModel, val target: Target) {
   }
 
   /* We only generate a Shape if there's a primary key, meaning we can't use Row */
-  def rowShape(table: Table): Option[(List[RowRepField], ScalaType)] = pkNewType(table).map { pk =>
+  def rowShape(table: Table): Option[(List[RowRepField], ScalaType)] = pkNewType(table).flatMap { pk =>
     val parts = table.nonPrimaryKeyColumns.map(_.scalaRep)
-    (parts, ScalaType("Shape", merge("Shape", parts.map(_.scalaType)), Some(fullTarget(table))))
+
+    parts.length match {
+      case 0 => None
+      case _ => Some((parts, ScalaType("Shape", merge("Shape", parts.map(_.scalaType)), Some(fullTarget(table)))))
+    }
   }
 
   /* We need this to get around casing issues for now. Todo fix this */
@@ -158,6 +166,26 @@ class Analysis(val model: DbModel, val target: Target) {
     Insert(fn)
   }
 
+  def insertMany(table: Table): Option[InsertMany] = rowShape(table).map { shape =>
+
+    val rowType = rowNewType(table)
+
+    val spaces = rowType._1.map { rr => SkipInsert.contains(rr.source.head.sqlType) match {
+      case true => "default"
+      case false => "?"
+    } }.mkString(", ")
+
+    val body =
+      s"""
+        |val sql = "INSERT INTO ${table.ref.fullName} (${rowNewType(table)._1.sqlColumns}) VALUES ($spaces)"
+        |Update[${shape._2.symbol}](sql)
+      """.stripMargin
+
+    val param = FunctionParam("values", ScalaType(s"List[${shape._2.qualifiedSymbol}]", "List()", None))
+    val fn = FunctionDef(Some(privateScope(table)), "insertMany", List(param), "Update[Shape]", body)
+    InsertMany(fn)
+  }
+
   def create(table: Table): Create = {
     val in = insert(table)
     val params = in.fn.params.map(f => s"${f.name}: ${f.`type`.symbol}").mkString(", ")
@@ -171,6 +199,28 @@ class Analysis(val model: DbModel, val target: Target) {
 
     val fn = FunctionDef(None, "create", in.fn.params, s"ConnectionIO[${rowType._2.symbol}]", body)
     Create(fn)
+  }
+
+  def createMany(table: Table): Option[CreateMany] = insertMany(table).map { im =>
+    val rowType = rowNewType(table)
+
+    val insertData = im.fn.params.map(_.name).mkString(", ")
+    val columns = rowType._1.flatMap(_.source).map(s => "\"" + s.sqlName + "\"").mkString(", ")
+
+    val pBody =
+      s"""
+          insertMany(${im.fn.params.map(_.name).mkString(", ")}).updateManyWithGeneratedKeys[${rowType._2.symbol}]($columns)($insertData)
+       """
+
+    val process = FunctionDef(None, "createManyP", im.fn.params, s"scalaz.stream.Process[ConnectionIO, ${rowType._2.symbol}]", pBody)
+
+    val body =
+      s"""
+         createManyP(${im.fn.params.map(_.name).mkString(", ")}).runLog.map(_.toList)
+       """
+
+    val list = FunctionDef(None, "createMany", im.fn.params, s"ConnectionIO[List[${rowType._2.symbol}]]", body)
+    CreateMany(process, list)
   }
 
   def get(table: Table): Option[Get] = pkNewType(table).map { pk =>
