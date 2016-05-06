@@ -35,13 +35,14 @@ class Generator(analysis: Analysis) {
             |
             |  ${ppFunctionDef(a.insert(t).fn)}
             |
-            |  ${a.insertMany(t).map(im => ppFunctionDef(im.fn)).getOrElse("")}
+            |  ${ppFunctionDef(a.insertMany(t).fn)}
             |
             |  ${ppFunctionDef(a.create(t).fn)}
             |
-            |  ${a.createMany(t).map(cm =>
-                  ppFunctionDef(cm.process) + "\n" +
-                  ppFunctionDef(cm.list)).getOrElse("")}
+            |  ${ppFunctionDef(a.createMany(t).process)}
+            |
+                ${ppFunctionDef(a.createMany(t).list)}
+
             |
             |  ${a.get(t).map { g =>
                   ppFunctionDef(g.inner) + "\n" +
@@ -100,7 +101,7 @@ class Generator(analysis: Analysis) {
             |
             |  ${checkTest(t, a.insert(t).fn)}
             |
-            |  ${a.insertMany(t).map(im => checkTest(t, im.fn)).getOrElse("")}
+            |  ${checkTest(t, a.insertMany(t).fn)}
             |
             |  ${a.get(t).map { g => checkTest(t, g.inner)}.getOrElse("")}
             |
@@ -141,10 +142,8 @@ class Generator(analysis: Analysis) {
   }
 
   def genShapeType(table: Table): String = {
-    a.rowShape(table).map { shape =>
-      s"case class ${shape._2.symbol}(${shape._1.map(f => s"${f.scalaName}: ${f.scalaType.qualifiedSymbol}").mkString(", ")})"
-    }.getOrElse("")
-
+    val shape = a.rowShape(table)
+    s"case class ${shape._2.symbol}(${shape._1.map(f => s"${f.scalaName}: ${f.scalaType.qualifiedSymbol}").mkString(", ")})"
   }
 
   def genInsert(table: Table): String = {

@@ -107,14 +107,18 @@ class Analysis(val model: DbModel, val target: Target) {
     (parts, ScalaType("Row", arb, Some(fullTarget(table))))
   }
 
-  /* We only generate a Shape if there's a primary key, meaning we can't use Row */
-  def rowShape(table: Table): Option[(List[RowRepField], ScalaType)] = pkNewType(table).flatMap { pk =>
-    val parts = table.nonPrimaryKeyColumns.map(_.scalaRep)
+  /**
+    * Generates a `Shape` for a table, which is like a `Row`, except:
+    * - Omits columns that are of types listed in `SkipInsert`
+    * - Unwraps newtypes to their raw form (for easier inserting)
+    * The intended usage of `Shape` is for `createMany` and similar methods.
+    *
+    * Sometimes Row == Shape, and that's fine. @Todo unify in these cases?
+    */
+  def rowShape(table: Table): (List[RowRepField], ScalaType) =  {
+    val parts = table.columns.filterNot(c => SkipInsert.contains(c.sqlType)).map(_.scalaRep)
 
-    parts.length match {
-      case 0 => None
-      case _ => Some((parts, ScalaType("Shape", merge("Shape", parts.map(_.scalaType)), Some(fullTarget(table)))))
-    }
+    (parts, ScalaType("Shape", merge("Shape", parts.map(_.scalaType)), Some(fullTarget(table))))
   }
 
   /* We need this to get around casing issues for now. Todo fix this */
@@ -166,8 +170,9 @@ class Analysis(val model: DbModel, val target: Target) {
     Insert(fn)
   }
 
-  def insertMany(table: Table): Option[InsertMany] = rowShape(table).map { shape =>
+  def insertMany(table: Table): InsertMany = {
 
+    val shape = rowShape(table)
     val rowType = rowNewType(table)
 
     val spaces = rowType._1.map { rr => SkipInsert.contains(rr.source.head.sqlType) match {
@@ -201,7 +206,8 @@ class Analysis(val model: DbModel, val target: Target) {
     Create(fn)
   }
 
-  def createMany(table: Table): Option[CreateMany] = insertMany(table).map { im =>
+  def createMany(table: Table): CreateMany = {
+    val im = insertMany(table)
     val rowType = rowNewType(table)
 
     val insertData = im.fn.params.map(_.name).mkString(", ")
@@ -212,7 +218,7 @@ class Analysis(val model: DbModel, val target: Target) {
           insertMany(${im.fn.params.map(_.name).mkString(", ")}).updateManyWithGeneratedKeys[${rowType._2.symbol}]($columns)($insertData)
        """
 
-    val process = FunctionDef(None, "createManyP", im.fn.params, s"scalaz.stream.Process[ConnectionIO, ${rowType._2.symbol}]", pBody)
+    val process = FunctionDef(Some(privateScope(table)), "createManyP", im.fn.params, s"scalaz.stream.Process[ConnectionIO, ${rowType._2.symbol}]", pBody)
 
     val body =
       s"""
