@@ -385,11 +385,11 @@ class Analysis(val model: DbModel, val target: Target) {
               |\"\"\".query[${rowType._2.symbol}]
        """.stripMargin
 
-        val inner = FunctionDef(Some(privateScope(table)), s"multigetBy${c.scalaName.capitalize}Inner", params, s"Query0[${rowType._2.symbol}]", innerBody)
+        val inner = FunctionDef(Some(privateScope(table)), s"multigetBy${c.unsafeScalaName.capitalize}Inner", params, s"Query0[${rowType._2.symbol}]", innerBody)
 
         val outerBody = s"""${inner.name}(${params.head.name}).list"""
 
-        val outer = FunctionDef(None, s"multigetBy${c.scalaName.capitalize}", params, s"ConnectionIO[List[${rowType._2.symbol}]]", outerBody)
+        val outer = FunctionDef(None, s"multigetBy${c.unsafeScalaName.capitalize}", params, s"ConnectionIO[List[${rowType._2.symbol}]]", outerBody)
 
         Seq(MultiGet(inner, outer))
 
@@ -414,11 +414,11 @@ class Analysis(val model: DbModel, val target: Target) {
               |\"\"\".query[${rowType._2.symbol}]
        """.stripMargin
 
-        val inner = FunctionDef(Some(privateScope(table)), s"getBy${c.scalaName.capitalize}Inner", params, s"Query0[${rowType._2.symbol}]", innerBody)
+        val inner = FunctionDef(Some(privateScope(table)), s"getBy${c.unsafeScalaName.capitalize}Inner", params, s"Query0[${rowType._2.symbol}]", innerBody)
 
         val outerBody = s"""${inner.name}(${params.head.name}).list"""
 
-        val outer = FunctionDef(None, s"getBy${c.scalaName.capitalize}", params, s"ConnectionIO[List[${rowType._2.symbol}]]", outerBody)
+        val outer = FunctionDef(None, s"getBy${c.unsafeScalaName.capitalize}", params, s"ConnectionIO[List[${rowType._2.symbol}]]", outerBody)
 
         Seq(MultiGet(inner, outer))
 
@@ -474,7 +474,8 @@ class Analysis(val model: DbModel, val target: Target) {
 
   implicit class ColumnScalaRep(column: sql.Column) {
 
-    def scalaName: String = makeSafe(column.sqlName.camelCase)
+    def unsafeScalaName: String = column.sqlName.camelCase
+    def scalaName: String = makeSafe(unsafeScalaName)
 
     /* This drops any foreign keys after the first, because I'm not sure if that's even valid */
     def reference = column.properties.flatten {
