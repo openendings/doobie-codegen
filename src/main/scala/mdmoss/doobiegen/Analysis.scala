@@ -147,7 +147,10 @@ class Analysis(val model: DbModel, val target: Target) {
           case true => p.copy(`type` = p.`type`.copy(symbol = s"Option[${p.`type`.qualifiedSymbol}]", "None", None))
           case false => p
         }
-      case None => FunctionParam(r.scalaName, r.scalaType)
+      case None =>
+        /* In this case, we want to use unwrapped types, not the primary key - so we go back to the original rep */
+        val rep = r.source.headOption.map(_.scalaRep).getOrElse(r)
+        FunctionParam(rep.scalaName, rep.scalaType)
     }
   }
 
