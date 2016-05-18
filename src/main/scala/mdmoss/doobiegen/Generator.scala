@@ -138,14 +138,16 @@ class Generator(analysis: Analysis) {
 
   def genRowType(table: Table): String = {
     val row = a.rowNewType(table)
-    s"""case class ${row._2.symbol}(${row._1.map(f => s"${f.scalaName}: ${f.scalaType.qualifiedSymbol}").mkString(", ")})
-    implicit val ${row._2.symbol}Composite: Composite[${row._2.symbol}] = implicitly[Composite[${row._2.symbol}]]"""
+    s"""case class ${row._2.symbol}(${row._1.map(f => s"${f.scalaName}: ${f.scalaType.qualifiedSymbol}").mkString(", ")}) {
+    implicit val ${row._2.symbol}Composite: Composite[${row._2.symbol}] = shapeless.cachedImplicit
+}"""
   }
 
   def genShapeType(table: Table): String = {
     val shape = a.rowShape(table)
-    s"""case class ${shape._2.symbol}(${shape._1.map(f => s"${f.scalaName}: ${f.scalaType.qualifiedSymbol}").mkString(", ")})
-    implicit val ${shape._2.symbol}Composite: Composite[${shape._2.symbol}] = implicitly[Composite[${shape._2.symbol}]]"""
+    s"""case class ${shape._2.symbol}(${shape._1.map(f => s"${f.scalaName}: ${f.scalaType.qualifiedSymbol}").mkString(", ")}) {
+    implicit val ${shape._2.symbol}Composite: Composite[${shape._2.symbol}] = shapeless.cachedImplicit
+}"""
   }
 
   def genInsert(table: Table): String = {
