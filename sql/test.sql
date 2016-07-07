@@ -1,4 +1,4 @@
--- Types mostly lifted from 
+-- Types mostly lifted from
 -- http://www.postgresql.org/docs/9.4/static/datatype.html
 
 CREATE TABLE test_types (
@@ -17,14 +17,20 @@ CREATE TABLE schema.test (
     id BIGINT
 );
 
+
 CREATE TABLE test_nullible (
     always_string    TEXT NOT NULL,
     sometimes_string TEXT
 );
 
+INSERT INTO test_nullible VALUES ('always_string', 'sometimes_string');
+
+UPDATE test_nullible SET sometimes_string='sometimes_string1';
+
 CREATE TABLE test_pk (
     id BIGINT PRIMARY KEY
 );
+
 
 CREATE TABLE test_skip_bigserial (
     id1 BIGSERIAL PRIMARY KEY,
