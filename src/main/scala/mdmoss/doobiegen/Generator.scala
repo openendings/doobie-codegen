@@ -24,8 +24,10 @@ class Generator(analysis: Analysis) {
             |import java.sql.Timestamp
             |import doobie.contrib.postgresql.pgtypes._
             |import scalaz._, Scalaz._
+            |${genImports(t)}
             |
             |object ${a.targetObject(t)} {
+            |  ${genMisc(t)}
             |
             |  ${genPkNewType(t)}
             |
@@ -128,6 +130,38 @@ class Generator(analysis: Analysis) {
     }
 
     tableFiles ++ testFiles
+  }
+
+  def getTypes(table: Table): Set[sql.Type] = {
+    table.properties.flatMap {
+      case sql.Column(_, sqlType, _) => List(sqlType)
+      case _ => List.empty
+    }.toSet
+  }
+
+  def genImports(table: Table): String = {
+    val types = getTypes(table)
+
+    if (types.contains(sql.JsonB)) {
+      s"""import argonaut.{Json, Parse}
+         |import org.postgresql.util.PGobject"""
+    } else {
+      ""
+    }
+  }
+
+  def genMisc(table: Table): String = {
+    val types = getTypes(table)
+
+    if (types.contains(sql.JsonB)) {
+s"""implicit val JsonMeta: doobie.imports.Meta[Json] =
+  doobie.imports.Meta.other[PGobject]("jsonb").nxmap[Json](
+    a => Parse.parse(a.getValue).leftMap[Json](sys.error).merge, // failure raises an exception
+    a => new PGobject <| (_.setType("jsonb")) <| (_.setValue(a.nospaces))
+  )"""
+    } else {
+      ""
+    }
   }
 
   def genPkNewType(table: Table): String = {

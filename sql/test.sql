@@ -8,7 +8,8 @@ CREATE TABLE test_types (
     integer_t    INTEGER,
     text_t       TEXT,
     timestamp_t  TIMESTAMP,
-    timestampz_t TIMESTAMP WITH TIME ZONE
+    timestampz_t TIMESTAMP WITH TIME ZONE,
+    json_t       JSONB
 );
 
 CREATE SCHEMA schema;

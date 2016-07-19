@@ -10,6 +10,7 @@ object sql {
   case object Integer         extends Type
   case object Text            extends Type
   case object Timestamp       extends Type
+  case object JsonB           extends Type
 
   sealed trait TableProperty
   case class Column(sqlName: String, sqlType: Type, properties: Seq[ColumnProperty]) extends TableProperty {
