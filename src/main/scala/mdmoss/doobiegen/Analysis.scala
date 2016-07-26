@@ -338,19 +338,22 @@ class Analysis(val model: DbModel, val target: Target) {
     val pkMultiget = pkNewType(table) match {
 
       case Some(pk) =>
-        /* This is a bit of a hack and will need to change eventually */
-        val pkMultigetInnerBodyCondition = table.primaryKeyColumns.map { c =>
+        /* This is a bit of a hack and will need to change eventually - broken for multiple primary keys */
+        val matchArray = table.primaryKeyColumns.headOption.map { c =>
           c.reference match {
-            case Some(r) => s"${c.sqlName} = ANY($${{${c.scalaName}}.map(_.value.value).toArray})"
-            case None => s"${c.sqlName} = ANY($${{${c.scalaName}}.map(_.value).toArray})"
+            case Some(r) => s"$${{${c.scalaName}}.map(_.value.value).toArray}"
+            case None => s"$${{${c.scalaName}}.map(_.value).toArray}"
           }
-        }.mkString(" AND ")
+        }.get
+
+        val matchColumn = table.primaryKeyColumns.head
 
         val pkMultigetInnerBody =
           s"""sql\"\"\"
               |  SELECT ${rowType._1.sqlColumnsInTable(table)}
               |  FROM ${table.ref.fullName}
-              |  WHERE $pkMultigetInnerBodyCondition
+              |  JOIN unnest($matchArray::${matchColumn.sqlType.underlyingType}[]) WITH ORDINALITY t(id, ord) ON t.id = ${matchColumn.sqlNameInTable(table)}
+              |  ORDER BY t.ord
               |\"\"\".query[${rowType._2.symbol}]
        """.stripMargin
 

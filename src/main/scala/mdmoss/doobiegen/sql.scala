@@ -2,15 +2,15 @@ package mdmoss.doobiegen
 
 object sql {
 
-  sealed trait Type
-  case object BigInt          extends Type
-  case object BigSerial       extends Type
-  case object Boolean         extends Type
-  case object DoublePrecision extends Type
-  case object Integer         extends Type
-  case object Text            extends Type
-  case object Timestamp       extends Type
-  case object JsonB           extends Type
+  abstract class Type(val underlyingType: String)
+  case object BigInt          extends Type("bigint")
+  case object BigSerial       extends Type("bigint")
+  case object Boolean         extends Type("boolean")
+  case object DoublePrecision extends Type("double precision")
+  case object Integer         extends Type("int")
+  case object Text            extends Type("text")
+  case object Timestamp       extends Type("timestamp")
+  case object JsonB           extends Type("jsonb")
 
   sealed trait TableProperty
 
