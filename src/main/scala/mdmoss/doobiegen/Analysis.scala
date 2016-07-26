@@ -19,7 +19,7 @@ case class Find(inner: FunctionDef, outer: FunctionDef)
 
 case class All(inner: FunctionDef, outer: FunctionDef)
 
-case class AllUnbounded(inner: FunctionDef, outer: FunctionDef)
+case class AllUnbounded(fn: FunctionDef)
 
 case class Count(inner: FunctionDef, outer: FunctionDef)
 
@@ -283,21 +283,12 @@ class Analysis(val model: DbModel, val target: Target) {
   def allUnbounded(table: Table): AllUnbounded = {
     val rowType = rowNewType(table)
 
-    val innerBody =
-      s"""sql\"\"\"
-         |  SELECT ${rowType._1.sqlColumns}
-         |  FROM ${table.ref.fullName}
-         |\"\"\".query[${rowType._2.symbol}]
-       """.stripMargin
+    val body =
+      s"""allInner(0, -1).list"""
 
-    val inner = FunctionDef(Some(privateScope(table)), "allUnboundedInner", Seq(), s"Query0[${rowType._2.symbol}]", innerBody)
+    val call = FunctionDef(None, "allUnbounded", Seq(), s"ConnectionIO[List[${rowType._2.symbol}]]", body)
 
-    val outerBody =
-      s"""allUnboundedInner().list"""
-
-    val outer = FunctionDef(None, "allUnbounded", Seq(), s"ConnectionIO[List[${rowType._2.symbol}]]", outerBody)
-
-    AllUnbounded(inner, outer)
+    AllUnbounded(call)
   }
 
   def all(table: Table): All = {
