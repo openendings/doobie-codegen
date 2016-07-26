@@ -57,6 +57,11 @@ object UnnestOrdinalitySpec extends Specification with ThrownExpectations {
       xa.trans(unnestOrdinalityQ(Some(List(1)), Some(List("a"))).list).run must_== List((1, "a"))
     }
 
+    "order in list-order" >> {
+      xa.trans(sql"""INSERT INTO unnest_ordinality VALUES (1, 'c'), (3, 'c')""".update.run).run
+      xa.trans(unnestOrdinalityQ(Some(List(1, 3)), Some(List("a", "c"))).list).run must_== List((1, "a"), (1, "c"), (3, "a"), (3, "c"))
+    }
+
 
   }
 
