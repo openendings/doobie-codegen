@@ -501,6 +501,7 @@ class Analysis(val model: DbModel, val target: Target) {
             case sql.Integer         => ScalaType("Int", "0", None)
             case sql.Text            => ScalaType("String", "\"\"", None)
             case sql.Timestamp       => ScalaType("Timestamp", "new Timestamp(0L)", None)
+            case sql.JsonB           => ScalaType("Json", "jEmptyObject", Some("argonaut"))
           }
       }
 

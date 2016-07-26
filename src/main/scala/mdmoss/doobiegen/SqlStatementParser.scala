@@ -62,6 +62,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
         | ignoreCase("text") ~                     push(sql.Text)
         | ignoreCase("timestamp with time zone") ~ push(sql.Timestamp)
         | ignoreCase("timestamp") ~                push(sql.Timestamp)
+        | ignoreCase("jsonb") ~                    push(sql.JsonB)
       ) ~ OptionalWhitespace
   }
 
