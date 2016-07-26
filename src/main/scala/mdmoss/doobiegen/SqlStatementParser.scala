@@ -22,6 +22,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
     | CreateView
     | Delete
     | DropView
+    | Update
   )
 
   def CreateTable: Rule1[sql.Statement] = rule {
@@ -129,5 +130,6 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
   def CreateView = rule { ignoreCase("create view") ~ zeroOrMore(noneOf(";")) ~ ";" ~ push(sql.Ignored) }
   def Delete = rule { ignoreCase("delete") ~ zeroOrMore(noneOf(";")) ~ ";" ~ push(sql.Ignored) }
   def DropView = rule { ignoreCase("drop view") ~ zeroOrMore(noneOf(";")) ~ ";" ~ push(sql.Ignored) }
+  def Update = rule { ignoreCase("update") ~ zeroOrMore(noneOf(";")) ~ ";" ~ push(sql.Ignored) }
 }
 
