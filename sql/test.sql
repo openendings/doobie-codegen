@@ -88,6 +88,14 @@ CREATE TABLE test_composite_unique(
   UNIQUE (a, b)
 );
 
+CREATE TABLE test_composite_unique_multi(
+  a TEXT NOT NULL,
+  b TEXT NOT NULL,
+  c TEXT NOT NULL,
+  UNIQUE (a, b),
+  UNIQUE (a, c)
+);
+
 CREATE TABLE test_composite_foreign_key(
   a TEXT NOT NULL,
   b TEXT NOT NULL,

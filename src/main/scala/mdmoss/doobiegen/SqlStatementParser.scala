@@ -43,18 +43,19 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
   }
 
   def CompositePrimaryKey: Rule1[sql.CompositePrimaryKey] = rule {
-    ("PRIMARY KEY" ~ optional(' ') ~ '(' ~ oneOrMore(ValidIdentifier ~ optional(',') ~ OptionalWhitespace) ~ ')' ~ OptionalWhitespace) ~>
+    ("PRIMARY KEY" ~ optional(' ') ~ '(' ~ oneOrMore(ValidIdentifier ~ optional(',') ~ OptionalWhitespace) ~ ')' ~ optional(',') ~ OptionalWhitespace) ~>
       { pkn: Seq[String] => sql.CompositePrimaryKey(pkn) }
   }
 
   def CompositeUnique: Rule1[sql.CompositeUnique] = rule {
-    ("UNIQUE" ~ optional(' ') ~ '(' ~ oneOrMore(ValidIdentifier ~ optional(',') ~ OptionalWhitespace) ~ ')' ~ OptionalWhitespace) ~>
+    ("UNIQUE" ~ optional(' ') ~ '(' ~ oneOrMore(ValidIdentifier ~ optional(',') ~ OptionalWhitespace) ~ ')' ~ optional(',') ~ OptionalWhitespace) ~>
       { pkn: Seq[String] => sql.CompositeUnique(pkn) }
   }
 
   def CompositeForeignKey: Rule1[sql.CompositeForeignKey] = rule {
     ("FOREIGN KEY" ~ optional(' ') ~ '(' ~ oneOrMore(ValidIdentifier ~ optional(',') ~ OptionalWhitespace) ~ ')' ~ OptionalWhitespace
-      ~ "REFERENCES" ~ optional(' ') ~ TableRef ~ optional(' ') ~ '(' ~ oneOrMore(ValidIdentifier ~ optional(',') ~ OptionalWhitespace) ~ ')' ~ OptionalWhitespace) ~>
+      ~ "REFERENCES" ~ optional(' ') ~ TableRef ~ optional(' ') ~ '(' ~ oneOrMore(ValidIdentifier ~ optional(',') ~ OptionalWhitespace) ~ ')'
+      ~ optional(',') ~ OptionalWhitespace) ~>
       { sql.CompositeForeignKey.apply _ }
   }
 
