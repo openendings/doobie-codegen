@@ -37,6 +37,7 @@ object Analysis {
   implicit class RowRepsForInsert(l: List[RowRepField]) {
     /* We lowercase everything here to avoid case issues */
     def sqlColumns: String = l.flatMap(_.source).map(c => c.sqlName.toLowerCase).mkString(", ")
+    def sqlColumnsInTable(table: Table) = l.flatMap(_.source).map(c => c.sqlNameInTable(table).toLowerCase).mkString(", ")
 
     /*
      * Case is an interesting question. According to what I've heard about the issue, we should be lowercasing
@@ -238,9 +239,9 @@ class Analysis(val model: DbModel, val target: Target) {
 
     val innerBody =
       s"""sql\"\"\"
-         |  SELECT ${rowType._1.sqlColumns}
+         |  SELECT ${rowType._1.sqlColumnsInTable(table)}
          |  FROM ${table.ref.fullName}
-         |  WHERE ${pk._1.sqlColumns} = $${${pk._1.head.source.head.scalaName}}
+         |  WHERE ${pk._1.sqlColumnsInTable(table)} = $${${pk._1.head.source.head.scalaName}}
          |\"\"\".query[${rowType._2.symbol}]
        """.stripMargin
 
@@ -262,9 +263,9 @@ class Analysis(val model: DbModel, val target: Target) {
 
     val innerBody =
       s"""sql\"\"\"
-          |  SELECT ${rowType._1.sqlColumns}
+          |  SELECT ${rowType._1.sqlColumnsInTable(table)}
           |  FROM ${table.ref.fullName}
-          |  WHERE ${pk._1.sqlColumns} = $${${pk._1.head.source.head.scalaName}}
+          |  WHERE ${pk._1.sqlColumnsInTable(table)} = $${${pk._1.head.source.head.scalaName}}
           |\"\"\".query[${rowType._2.symbol}]
        """.stripMargin
 
@@ -297,7 +298,7 @@ class Analysis(val model: DbModel, val target: Target) {
 
     val innerBody =
       s"""sql\"\"\"
-          |  SELECT ${rowType._1.sqlColumns}
+          |  SELECT ${rowType._1.sqlColumnsInTable(table)}
           |  FROM ${table.ref.fullName}
           |  OFFSET $$offset
           |  LIMIT $$limit
@@ -347,7 +348,7 @@ class Analysis(val model: DbModel, val target: Target) {
 
         val pkMultigetInnerBody =
           s"""sql\"\"\"
-              |  SELECT ${rowType._1.sqlColumns}
+              |  SELECT ${rowType._1.sqlColumnsInTable(table)}
               |  FROM ${table.ref.fullName}
               |  WHERE $pkMultigetInnerBodyCondition
               |\"\"\".query[${rowType._2.symbol}]
@@ -379,7 +380,7 @@ class Analysis(val model: DbModel, val target: Target) {
 
         val innerBody =
           s"""sql\"\"\"
-              |  SELECT ${rowType._1.sqlColumns}
+              |  SELECT ${rowType._1.sqlColumnsInTable(table)}
               |  FROM ${table.ref.fullName}
               |  WHERE $condition
               |\"\"\".query[${rowType._2.symbol}]
@@ -408,7 +409,7 @@ class Analysis(val model: DbModel, val target: Target) {
 
         val innerBody =
           s"""sql\"\"\"
-              |  SELECT ${rowType._1.sqlColumns}
+              |  SELECT ${rowType._1.sqlColumnsInTable(table)}
               |  FROM ${table.ref.fullName}
               |  WHERE $condition
               |\"\"\".query[${rowType._2.symbol}]
