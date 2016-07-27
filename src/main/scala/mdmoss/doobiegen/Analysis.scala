@@ -357,13 +357,13 @@ class Analysis(val model: DbModel, val target: Target) {
       }
       val columnType = pk._1.head.source.head.sqlType.underlyingType
 
-      s"INNER JOIN unnest($matchArray::$columnType[]) WITH ORDINALITY t0(val, ord) ON t0.val = ${pk._1.head.source.head.sqlNameInTable(table)}"
+      s"LEFT JOIN unnest($matchArray::$columnType[]) WITH ORDINALITY t0(val, ord) ON t0.val = ${pk._1.head.source.head.sqlNameInTable(table)}"
     }.toList ++ table.columns.zipWithIndex.flatMap {
         case (c@Column(colName, colType, copProps), i) if c.reference.isDefined && !c.isNullible && !table.primaryKeyColumns.contains(c) =>
           val matchArray = s"$${{${c.scalaName}}.toSeq.flatten.map(_.value).toArray}"
 
             Seq(
-              s"INNER JOIN unnest(${matchArray}::${c.sqlType.underlyingType}[]) WITH ORDINALITY t$i(val, ord) ON t$i.val = ${c.sqlNameInTable(table)}"
+              s"LEFT JOIN unnest(${matchArray}::${c.sqlType.underlyingType}[]) WITH ORDINALITY t$i(val, ord) ON t$i.val = ${c.sqlNameInTable(table)}"
             )
         case _ => Seq()
         }
