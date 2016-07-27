@@ -23,7 +23,9 @@ case class AllUnbounded(fn: FunctionDef)
 
 case class Count(inner: FunctionDef, outer: FunctionDef)
 
-case class MultiGet(inner: FunctionDef, outer: FunctionDef)
+case class BaseMultiget(fn: FunctionDef)
+
+case class MultiGet(inner: FunctionDef)
 
 case class Update(inner: FunctionDef, outer: FunctionDef)
 
@@ -331,50 +333,171 @@ class Analysis(val model: DbModel, val target: Target) {
     Count(inner, outer)
   }
 
-  /* This should be split into pk and non-pk multigets - @todo */
+  def baseMultiget(table: Table): Option[BaseMultiget] = {
+    val rowType = rowNewType(table)
+
+    val params = pkNewType(table).map { pk =>
+      FunctionParam(pk._1.head.source.head.scalaName, app(app(pk._2, "Seq"), "Option"))
+    }.toList ++
+    table.columns.flatMap {
+      case c @ Column(colName, colType, copProps) if c.reference.isDefined && !c.isNullible && !table.primaryKeyColumns.contains(c) =>
+        Seq(FunctionParam(c.scalaName, app(app(c.scalaType, "Seq"), "Option")))
+
+      case _ => Seq()
+    }
+
+    val returnType = s"Query0[${rowType._2.symbol}]"
+
+    val joins = (pkNewType(table).map { pk =>
+      val arrayName = pk._1.head.source.head.scalaName
+
+      val matchArray = pk._1.head.source.head.reference match {
+        case Some(ref) => s"$${{${arrayName}}.toSeq.flatten.map(_.value.value).toArray}"
+        case None      => s"$${{${arrayName}}.toSeq.flatten.map(_.value).toArray}"
+      }
+      val columnType = pk._1.head.source.head.sqlType.underlyingType
+
+      s"INNER JOIN unnest($matchArray::$columnType[]) WITH ORDINALITY t0(val, ord) ON t0.val = ${pk._1.head.source.head.sqlNameInTable(table)}"
+    }.toList ++ table.columns.zipWithIndex.flatMap {
+        case (c@Column(colName, colType, copProps), i) if c.reference.isDefined && !c.isNullible && !table.primaryKeyColumns.contains(c) =>
+          val matchArray = s"$${{${c.scalaName}}.toSeq.flatten.map(_.value).toArray}"
+
+            Seq(
+              s"INNER JOIN unnest(${matchArray}::${c.sqlType.underlyingType}[]) WITH ORDINALITY t$i(val, ord) ON t$i.val = ${c.sqlNameInTable(table)}"
+            )
+        case _ => Seq()
+        }
+      ).mkString("\n")
+
+    val where = "WHERE " + (pkNewType(table).map { pk =>
+      val arrayName = pk._1.head.source.head.scalaName
+
+      val matchArray = pk._1.head.source.head.reference match {
+        case Some(ref) => s"$${{${arrayName}}.toSeq.flatten.map(_.value.value).toArray}"
+        case None => s"$${{${arrayName}}.toSeq.flatten.map(_.value).toArray}"
+      }
+
+      s"($${$arrayName.isEmpty} OR ${pk._1.head.source.head.sqlNameInTable(table)} = ANY($matchArray))"
+    }.toList ++ table.columns.zipWithIndex.flatMap {
+      case (c@Column(colName, colType, copProps), i) if c.reference.isDefined && !c.isNullible && !table.primaryKeyColumns.contains(c) =>
+        val matchArray = s"$${{${c.scalaName}}.toSeq.flatten.map(_.value).toArray}"
+
+        Seq(
+          s"($${${c.scalaName}.isEmpty} OR ${c.sqlNameInTable(table)} = ANY($matchArray))"
+        )
+      case _ => Seq()
+    }
+      ).mkString("\nAND ")
+
+    val orderBy = "ORDER BY " + (pkNewType(table).map(_ => "t0.ord").toList ++
+      table.columns.zipWithIndex.flatMap {
+        case (c@Column(colName, colType, copProps), i) if c.reference.isDefined && !c.isNullible && !table.primaryKeyColumns.contains(c) =>
+          Seq(s"t$i.ord")
+        case _ => Seq()
+      }
+      ).mkString(", ")
+
+    val body =
+      s"""sql\"\"\"
+        |  SELECT ${rowType._1.sqlColumnsInTable(table)}
+        |  FROM ${table.ref.fullName}
+        |  $joins
+        |  $where
+        |  $orderBy
+        |\"\"\".query[${rowType._2.symbol}]
+        """.stripMargin
+
+    val multiget = FunctionDef(
+      Some(privateScope(table)),
+      "multigetInnerBase",
+      params,
+      returnType,
+      body
+    )
+
+    params.length match {
+      case 0 => None
+      case _ => Some(BaseMultiget(multiget))
+    }
+  }
+
+  def isInMultiget(t: Table, c: Column) = c.reference.isDefined && !c.isNullible && !t.primaryKeyColumns.contains(c)
+
   def multigets(table: Table): Seq[MultiGet] = {
     val rowType = rowNewType(table)
 
-    val pkMultiget = pkNewType(table) match {
+    /* All of these now call through to the underlying multiget */
+    val returnType = s"ConnectionIO[List[${rowType._2.symbol}]]"
 
-      case Some(pk) =>
-        /* This is a bit of a hack and will need to change eventually - broken for multiple primary keys */
-        val matchArray = table.primaryKeyColumns.headOption.map { c =>
-          c.reference match {
-            case Some(r) => s"$${{${c.scalaName}}.map(_.value.value).toArray}"
-            case None => s"$${{${c.scalaName}}.map(_.value).toArray}"
+    val numPkFields = if (pkNewType(table).isDefined) 1 else 0
+
+    baseMultiget(table).toList.flatMap { base =>
+
+        pkNewType(table).toList.flatMap { pk =>
+
+          val params = pluralise(List(FunctionParam(table.primaryKeyColumns.head.scalaName, pk._2)))
+
+          val baseParams = s"Some(${params.map(_.name).head})" :: List.fill(base.fn.params.length - 1)("None")
+          val body = s"multigetInnerBase(${baseParams.mkString(", ")}).list"
+
+          List(
+            MultiGet(FunctionDef(None, "multiget", params, returnType, body))
+          )
+
+        } ++ pkNewType(table).toList.flatMap { pk =>
+
+          val params = pluralise(List(FunctionParam(table.primaryKeyColumns.head.scalaName, table.primaryKeyColumns.head.scalaType)))
+
+          val baseParams = s"Some(${params.map(_.name).head}.map(${pk._2.symbol}(_)))" :: List.fill(base.fn.params.length - 1)("None")
+          val body = s"multigetInnerBase(${baseParams.mkString(", ")}).list"
+
+          if (table.primaryKeyColumns.head.references.isDefined) {
+            List(
+              MultiGet(FunctionDef(None, s"multigetBy${table.primaryKeyColumns.head.unsafeScalaName.capitalize}", params, returnType, body))
+            )
+          } else {
+            List()
           }
-        }.get
 
-        val matchColumn = table.primaryKeyColumns.head
+        } ++table.columns.filter(isInMultiget(table, _)).zipWithIndex.flatMap {
+          case (c@Column(colName, colType, copProps), i) if c.reference.isDefined && !c.isNullible && !table.primaryKeyColumns.contains(c) =>
 
-        val pkMultigetInnerBody =
-          s"""sql\"\"\"
-              |  SELECT ${rowType._1.sqlColumnsInTable(table)}
-              |  FROM ${table.ref.fullName}
-              |  JOIN unnest($matchArray::${matchColumn.sqlType.underlyingType}[]) WITH ORDINALITY t(id, ord) ON t.id = ${matchColumn.sqlNameInTable(table)}
-              |  ORDER BY t.ord
-              |\"\"\".query[${rowType._2.symbol}]
-       """.stripMargin
+            val params = pluralise(List(FunctionParam(c.scalaName, c.scalaType)))
 
-        val pkParams = pluralise(List(FunctionParam(table.primaryKeyColumns.head.scalaName, pk._2)))
+            val paramsBefore = i + numPkFields
+            val paramsAfter = base.fn.params.length - (paramsBefore + 1)
+            val baseParams = List.fill(paramsBefore)("None") ++ List(s"Some(${params.map(_.name).head})") ++ List.fill(paramsAfter)("None")
+            val body = s"multigetInnerBase(${baseParams.mkString(", ")}).list"
 
-        val pkMultigetInner = FunctionDef(Some(privateScope(table)), "multigetInner", pkParams, s"Query0[${rowType._2.symbol}]", pkMultigetInnerBody)
+            List(MultiGet(FunctionDef(None, s"multigetBy${c.unsafeScalaName.capitalize}", params, returnType, body)))
 
-        val pkMultigetOuterBody =
-          s"""multigetInner(${pkParams.map(_.name).head}).list"""
+          case  _ => List()
+        } ++ table.columns.filter(isInMultiget(table, _)).zipWithIndex.flatMap {
+          case (c@Column(colName, colType, copProps), i) if c.reference.isDefined && !c.isNullible && !table.primaryKeyColumns.contains(c) =>
 
-        val pkMultigetOuter = FunctionDef(None, "multiget", pkParams, s"ConnectionIO[List[${rowType._2.symbol}]]", pkMultigetOuterBody)
+            val params = List(FunctionParam(c.scalaName, c.scalaType))
 
-        Seq(MultiGet(pkMultigetInner, pkMultigetOuter))
+            val paramsBefore = i + numPkFields
+            val paramsAfter = base.fn.params.length - (paramsBefore + 1)
+            val baseParams = List.fill(paramsBefore)("None") ++ List(s"Some(Seq(${params.map(_.name).head}))") ++ List.fill(paramsAfter)("None")
+            val body = s"multigetInnerBase(${baseParams.mkString(", ")}).list"
 
-      case None => Seq()
+            List(MultiGet(FunctionDef(None, s"getBy${c.unsafeScalaName.capitalize}", params, returnType, body)))
+
+          case  _ => List()
+
+
+
+        }
+
     }
+
+/*
 
     val fkMultigets = table.columns.flatMap {
       case c @ Column(colName, colType, copProps) if c.reference.isDefined && !c.isNullible =>
 
-        val params = pluralise(List(FunctionParam(c.scalaName, c.scalaType)))
+
 
         val condition = c.reference match {
           case Some(ref) => s"${c.sqlName} = ANY($${{${c.scalaName}}.map(_.value).toArray})"
@@ -429,7 +552,7 @@ class Analysis(val model: DbModel, val target: Target) {
       case _ => Seq()
     }
 
-    pkMultiget ++ fkMultigets ++ singularFkMultigets
+    pkMultiget ++ fkMultigets ++ singularFkMultigets*/
   }
 
   /* This contains some hacks. @Todo fix */

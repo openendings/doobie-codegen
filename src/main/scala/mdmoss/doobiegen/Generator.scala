@@ -65,7 +65,9 @@ class Generator(analysis: Analysis) {
             |  ${ppFunctionDef(a.count(t).inner)}
             |  ${ppFunctionDef(a.count(t).outer)}
             |
-            |  ${a.multigets(t).map { m => ppFunctionDef(m.inner) + "\n" + ppFunctionDef(m.outer) }.mkString("\n") }
+            |  ${a.baseMultiget(t).map { f => ppFunctionDef(f.fn) }.getOrElse("")}
+            |
+            |  ${a.multigets(t).map { m => ppFunctionDef(m.inner) }.mkString("\n") }
             |
             |  ${a.update(t).map { u =>
                   ppFunctionDef(u.inner) + "\n" +
@@ -113,7 +115,7 @@ class Generator(analysis: Analysis) {
             |
             |  ${checkTest(t, a.count(t).inner)}
             |
-            |  ${a.multigets(t).map { m => checkTest(t, m.inner) }.mkString("\n") }
+            |  ${a.baseMultiget(t).map(f => checkTest(t, f.fn)).getOrElse("")}
             |
             |  ${a.update(t).map { u => checkTest(t, u.inner) }.mkString("\n") }
             |}
