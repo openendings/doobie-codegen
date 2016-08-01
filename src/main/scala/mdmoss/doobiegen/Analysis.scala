@@ -286,8 +286,11 @@ class Analysis(val model: DbModel, val target: Target) {
   def allUnbounded(table: Table): AllUnbounded = {
     val rowType = rowNewType(table)
 
+    /* This is a super hack, but will do for now */
+    val bigintMax = "9223372036854775807L"
+
     val body =
-      s"""allInner(0, -1).list"""
+      s"""allInner(0, $bigintMax).list"""
 
     val call = FunctionDef(None, "allUnbounded", Seq(), s"ConnectionIO[List[${rowType._2.symbol}]]", body)
 
