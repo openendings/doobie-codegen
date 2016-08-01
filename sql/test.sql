@@ -88,6 +88,20 @@ CREATE TABLE test_composite_unique(
   UNIQUE (a, b)
 );
 
+CREATE TABLE test_composite_unique_multi(
+  a TEXT NOT NULL,
+  b TEXT NOT NULL,
+  c TEXT NOT NULL,
+  UNIQUE (a, b),
+  UNIQUE (a, c)
+);
+
+CREATE TABLE test_composite_foreign_key(
+  a TEXT NOT NULL,
+  b TEXT NOT NULL,
+  FOREIGN KEY (a, b) REFERENCES test_composite_unique (a, b)
+);
+
 CREATE VIEW test_view AS SELECT * FROM test_composite_unique;
 
 DROP VIEW test_view;

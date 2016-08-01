@@ -27,6 +27,11 @@ object sql {
 
   case class CompositeUnique(columnNames: Seq[String]) extends TableProperty
 
+  case class CompositeForeignKey(
+    localColumnNames: Seq[String],
+    foreignTable: TableRef,
+    foreignColumnNames: Seq[String]) extends TableProperty
+
   case class TableRef(schema: Option[String], sqlName: String) {
     /* I don't like this name. @todo change this. */
     /* Also, see case notes on Analysis.RowRepsForInsert.sqlColumns. */
