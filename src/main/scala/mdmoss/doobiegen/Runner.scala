@@ -3,6 +3,7 @@ package mdmoss.doobiegen
 import java.io.{File, PrintWriter}
 import java.nio.file.Paths
 
+import mdmoss.doobiegen.StatementTypes.Statement
 import mdmoss.doobiegen.output.SourceWriter
 import org.parboiled2.ParseError
 
@@ -16,10 +17,20 @@ object Runner {
     schemaDir: String,
     testDb: TestDatabase,
     src: String,
-    `package`: String
+    `package`: String,
+    statements: Option[Map[String, List[Statement]]]
   ) {
 
     def enclosingPackage = `package`.split('.').reverse.headOption
+  }
+
+  object Target {
+    def apply(
+      schemaDir: String,
+      testDb: TestDatabase,
+      src: String,
+      `package`: String
+    ): Target = Target(schemaDir, testDb, src, `package`, None)
   }
 
   val Default = Target(
@@ -73,23 +84,7 @@ object Runner {
 
     val model = statements.foldLeft(DbModel.empty)(DbModel.update)
 
-    /*    model.tables.foreach(println)
-    println(seperator)*/
-
     val analysis = new Analysis(model, target)
-
-    model.tables.foreach { t =>
-      /*      println(seperator)
-      println(t.ref.fullName)
-      println(analysis.targetPackage(t))
-      println(analysis.targetObject(t))
-      println(analysis.privateScope(t))
-      println(analysis.pkNewType(t))
-      println(analysis.rowNewType(t))
-      println(analysis.insert(t))
-      println(analysis.insert(t))*/
-    }
-
 
     val generator = new Generator(analysis)
 

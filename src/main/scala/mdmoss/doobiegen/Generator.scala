@@ -3,6 +3,7 @@ package mdmoss.doobiegen
 import mdmoss.doobiegen.output.File
 import mdmoss.doobiegen.sql.Table
 import Analysis._
+import mdmoss.doobiegen.StatementTypes.Statement
 
 class Generator(analysis: Analysis) {
 
@@ -11,10 +12,22 @@ class Generator(analysis: Analysis) {
   val target = analysis.target
   val tr = target.testDb
 
+  def checkTargetStatements(table: Table, statement: Statement, out: String) = {
+    val statementIsTargeted = target.statements.flatMap(_.get(table.ref.fullName)).exists(_.contains(statement))
+
+    if (target.statements.isDefined && !statementIsTargeted) {
+      s"/* $statement omitted because of StatementTypes */"
+    } else {
+      out
+    }
+  }
+
   def gen: Seq[File] = {
     /* First aim - objects for each database table */
 
     val tableFiles = db.tables.map { t =>
+
+      def checkTarget(statement: Statement, out: String) = checkTargetStatements(t, statement, out)
 
       val contents =
         s"""package ${a.targetPackage(t)}
@@ -35,43 +48,41 @@ class Generator(analysis: Analysis) {
             |
             |  ${genShapeType(t)}
             |
-            |  ${ppFunctionDef(a.insert(t).fn)}
+            |  ${checkTarget(StatementTypes.Create, ppFunctionDef(a.insert(t).fn))}
             |
-            |  ${ppFunctionDef(a.insertMany(t).fn)}
+            |  ${checkTarget(StatementTypes.Create, ppFunctionDef(a.create(t).fn))}
             |
-            |  ${ppFunctionDef(a.create(t).fn)}
+            |  ${checkTarget(StatementTypes.CreateMany, ppFunctionDef(a.insertMany(t).fn))}
             |
-            |  ${ppFunctionDef(a.createMany(t).process)}
+            |  ${checkTarget(StatementTypes.CreateMany, ppFunctionDef(a.createMany(t).process))}
             |
-                ${ppFunctionDef(a.createMany(t).list)}
-
+            |  ${checkTarget(StatementTypes.CreateMany, ppFunctionDef(a.createMany(t).list))}
             |
             |  ${a.get(t).map { g =>
-                  ppFunctionDef(g.inner) + "\n" +
-                  ppFunctionDef(g.outer)
+                  checkTarget(StatementTypes.Get, ppFunctionDef(g.inner) + "\n" + ppFunctionDef(g.outer))
                 }.getOrElse("")}
             |
             |  ${a.find(t).map { f =>
-                  ppFunctionDef(f.inner) + "\n" +
-                  ppFunctionDef(f.outer)
+                  checkTarget(StatementTypes.Find, ppFunctionDef(f.inner) + "\n" + ppFunctionDef(f.outer))
                }.getOrElse("")}
             |
+            |  ${checkTarget(StatementTypes.All, ppFunctionDef(a.all(t).inner))}
             |
-            |  ${ppFunctionDef(a.all(t).inner)}
-            |  ${ppFunctionDef(a.all(t).outer)}
+            |  ${checkTarget(StatementTypes.All, ppFunctionDef(a.all(t).outer))}
             |
-            |  ${ppFunctionDef(a.allUnbounded(t).fn)}
+            |  ${checkTarget(StatementTypes.All, ppFunctionDef(a.allUnbounded(t).fn))}
             |
-            |  ${ppFunctionDef(a.count(t).inner)}
-            |  ${ppFunctionDef(a.count(t).outer)}
+            |  ${checkTarget(StatementTypes.Count, ppFunctionDef(a.count(t).inner))}
+            |  ${checkTarget(StatementTypes.Count, ppFunctionDef(a.count(t).outer))}
             |
-            |  ${a.baseMultiget(t).map { f => ppFunctionDef(f.fn) }.getOrElse("")}
+            |  ${a.baseMultiget(t).map { f =>
+                 checkTarget(StatementTypes.MultiGet, ppFunctionDef(f.fn))
+                }.getOrElse("")}
             |
-            |  ${a.multigets(t).map { m => ppFunctionDef(m.inner) }.mkString("\n") }
+            |  ${a.multigets(t).map { m => checkTarget(StatementTypes.MultiGet, ppFunctionDef(m.inner)) }.mkString("\n") }
             |
             |  ${a.update(t).map { u =>
-                  ppFunctionDef(u.inner) + "\n" +
-                  ppFunctionDef(u.outer)
+                 checkTarget(StatementTypes.Update, ppFunctionDef(u.inner) + "\n" + ppFunctionDef(u.outer))
               }.getOrElse("")}
             |
             |}
@@ -88,6 +99,9 @@ class Generator(analysis: Analysis) {
 
     /* We're going to follow up with tests */
     val testFiles = db.tables.map { t =>
+
+      def checkTarget(statement: Statement, out: String) = checkTargetStatements(t, statement, out)
+
       val contents =
         s"""package ${a.targetPackage(t)}
             |
@@ -103,21 +117,21 @@ class Generator(analysis: Analysis) {
             |
             |  val transactor = DriverManagerTransactor[Task]("${tr.driver}", "${tr.url}", "${tr.username}", "${tr.password}")
             |
-            |  ${checkTest(t, a.insert(t).fn)}
+            |  ${checkTarget(StatementTypes.Create, checkTest(t, a.insert(t).fn))}
             |
-            |  ${checkTest(t, a.insertMany(t).fn)}
+            |  ${checkTarget(StatementTypes.CreateMany, checkTest(t, a.insertMany(t).fn))}
             |
-            |  ${a.get(t).map { g => checkTest(t, g.inner)}.getOrElse("")}
+            |  ${a.get(t).map { g => checkTarget(StatementTypes.Get, checkTest(t, g.inner))}.getOrElse("")}
             |
-            |  ${a.find(t).map { f => checkTest(t, f.inner)}.getOrElse("")}
+            |  ${a.find(t).map { f => checkTarget(StatementTypes.Find, checkTest(t, f.inner))}.getOrElse("")}
             |
-            |  ${checkTest(t, a.all(t).inner)}
+            |  ${checkTarget(StatementTypes.All, checkTest(t, a.all(t).inner))}
             |
-            |  ${checkTest(t, a.count(t).inner)}
+            |  ${checkTarget(StatementTypes.Count, checkTest(t, a.count(t).inner))}
             |
-            |  ${a.baseMultiget(t).map(f => checkTest(t, f.fn)).getOrElse("")}
+            |  ${a.baseMultiget(t).map(f => checkTarget(StatementTypes.MultiGet, checkTest(t, f.fn))).getOrElse("")}
             |
-            |  ${a.update(t).map { u => checkTest(t, u.inner) }.mkString("\n") }
+            |  ${a.update(t).map { u => checkTarget(StatementTypes.Update, checkTest(t, u.inner)) }.mkString("\n") }
             |}
          """.stripMargin
 
