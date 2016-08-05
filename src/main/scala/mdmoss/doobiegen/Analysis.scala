@@ -217,7 +217,7 @@ class Analysis(val model: DbModel, val target: Target) {
     val rowType = rowNewType(table)
 
     val insertData = im.fn.params.map(_.name).mkString(", ")
-    val columns = rowType._1.flatMap(_.source).map(s => "\"" + s.sqlName + "\"").mkString(", ")
+    val columns = rowType._1.flatMap(_.source).map(s => "\"" + s.sqlName.toLowerCase + "\"").mkString(", ")
 
     val pBody =
       s"""

@@ -16,7 +16,7 @@ class Generator(analysis: Analysis) {
     val statementIsTargeted = target.statements.flatMap(_.get(table.ref.fullName)).exists(_.contains(statement))
 
     if (target.statements.isDefined && !statementIsTargeted) {
-      s"/* $statement omitted because of StatementTypes */"
+      s"/* ${statement.getClass.getCanonicalName} omitted because of StatementTypes */"
     } else {
       out
     }
