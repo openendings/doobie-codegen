@@ -631,6 +631,7 @@ class Analysis(val model: DbModel, val target: Target) {
             case sql.Text            => ScalaType("String", "\"\"", None)
             case sql.Timestamp       => ScalaType("Timestamp", "new Timestamp(0L)", None)
             case sql.JsonB           => ScalaType("Json", "jEmptyObject", Some("argonaut"))
+            case sql.Geometry        => ScalaType("PGgeometry", "new PGgeometry()", None)
           }
       }
 

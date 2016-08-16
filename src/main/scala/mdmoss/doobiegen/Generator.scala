@@ -37,6 +37,8 @@ class Generator(analysis: Analysis) {
             |import java.sql.Timestamp
             |import doobie.contrib.postgresql.pgtypes._
             |import scalaz._, Scalaz._
+            |import org.postgis._
+            |
             |${genImports(t)}
             |
             |object ${a.targetObject(t)} {
@@ -112,6 +114,7 @@ class Generator(analysis: Analysis) {
             |import scalaz.concurrent.Task
             |import doobie.contrib.specs2.analysisspec.AnalysisSpec
             |import scalaz._, Scalaz._
+            |import org.postgis._
             |
             |object ${a.targetObject(t)}Spec extends Specification with AnalysisSpec {
             |

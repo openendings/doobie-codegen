@@ -11,6 +11,7 @@ object sql {
   case object Text            extends Type("text")
   case object Timestamp       extends Type("timestamp")
   case object JsonB           extends Type("jsonb")
+  case object Geometry        extends Type("geometry")
 
   sealed trait TableProperty
 

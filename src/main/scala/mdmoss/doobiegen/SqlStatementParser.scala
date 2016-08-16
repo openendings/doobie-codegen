@@ -72,8 +72,11 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
         | ignoreCase("timestamp with time zone") ~ push(sql.Timestamp)
         | ignoreCase("timestamp") ~                push(sql.Timestamp)
         | ignoreCase("jsonb") ~                    push(sql.JsonB)
+        | ignoreCase("geometry") ~                 push(sql.Geometry)
       ) ~ OptionalWhitespace
   }
+
+  def defaultChars = CharPredicate.Alpha ++ '_' ++ '-' ++ CharPredicate.Digit ++ '(' ++ ')' ++ ' ' ++ ','
 
   /* This rule has to use parens, for an unknown reason */
   def ColumnProperty: Rule1[sql.ColumnProperty] = rule (
@@ -81,7 +84,7 @@ class SqlStatementParser(val input: ParserInput) extends Parser {
     | ignoreCase("not null") ~ push(sql.NotNull)
     | ignoreCase("primary key") ~ push(sql.PrimaryKey)
       /* Our handling of default is getting messier, but it should be replacable all at once later */
-    | ignoreCase("default") ~ " " ~ optional('(') ~ oneOrMore(CharPredicate.Alpha ++ '_' ++ '-' ++ CharPredicate.Digit) ~ optional(')') ~ push(sql.Default)
+    | ignoreCase("default") ~ " " ~ optional('(') ~ oneOrMore(defaultChars) ~ optional(')') ~ push(sql.Default)
     | ignoreCase("references") ~ " " ~ TableRef ~ "(" ~ ValidIdentifier ~ ")" ~> ((t: TableRef, column: String) => References(t, column))
     | ignoreCase("unique") ~ push(sql.Unique)
     | ignoreCase("constraint") ~ " " ~ ValidIdentifier ~ ignoreCase("check") ~ " (" ~ zeroOrMore(noneOf(")")) ~ ")" ~> { (_: Any) => sql.Constraint }

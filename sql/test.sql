@@ -110,3 +110,11 @@ CREATE TABLE test_typical_table(
   id    BIGSERIAL PRIMARY KEY,
   words TEXT NOT NULL
 );
+
+CREATE EXTENSION postgis;
+
+CREATE TABLE test_points(
+  lat DOUBLE PRECISION NOT NULL,
+  lon DOUBLE PRECISION NOT NULL,
+  geom GEOMETRY NOT NULL DEFAULT ST_MakePoint(0, 0)
+);
