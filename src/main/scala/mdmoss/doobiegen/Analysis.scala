@@ -647,12 +647,11 @@ class Analysis(val model: DbModel, val target: Target) {
   /* This is the type that should be used by other tables referring to the given column */
   def foreignType(table: Table, column: Column): ScalaType = {
 
-    val rowType = rowNewType(table)
-    val orig = rowType._1.filter(_.source.headOption.contains(column)).head.scalaType
+    val pk = pkNewType(table).head
 
     column.isNullible match {
-      case true => ScalaType(s"Option[${orig.qualifiedSymbol}]", "None", None)
-      case false => orig
+      case true => ScalaType(s"Option[${pk._2.qualifiedSymbol}]", "None", None)
+      case false => pk._2
     }
   }
 }

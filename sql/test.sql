@@ -118,3 +118,14 @@ CREATE TABLE test_points(
   lon DOUBLE PRECISION NOT NULL,
   geom GEOMETRY NOT NULL DEFAULT ST_MakePoint(0, 0)
 );
+
+CREATE TABLE test_mutual_ref_a(
+  id BIGINT PRIMARY KEY
+);
+
+CREATE TABLE test_mutual_ref_b(
+  id BIGINT PRIMARY KEY,
+  other BIGINT NOT NULL REFERENCES test_mutual_ref_a(id)
+);
+
+ALTER TABLE test_mutual_ref_a ADD COLUMN other BIGINT NOT NULL REFERENCES test_mutual_ref_b(id);
